@@ -1,0 +1,15 @@
+pandas
+numpy
+scikit-learn
+matplotlib
+seaborn
+plotly
+jupyter
+jupyterlab
+statsmodels
+requests
+beautifulsoup4
+duckdb
+xgboost
+shap
+openpyxl

@@ -1,0 +1,127 @@
+<meta charset="utf-8">
+<title>Customer Churn Prediction — Report</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Project 02 · Data Scientist</p>
+    <h1>Customer Churn Prediction</h1>
+    <p class="lede">
+      Predicting which of 7,043 telecom customers are about to churn — and explaining
+      exactly why with SHAP, so the model is actionable, not just accurate.
+    </p>
+    <div class="links">
+      <a href="../../index.html">&larr; All projects</a>
+      <a href="notebooks/churn_model.ipynb">Notebook</a>
+      <a href="README.md">Project README</a>
+      <a href="https://github.com/IBM/telco-customer-churn-on-icp4d">Dataset source</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap report">
+
+  <section>
+    <h2>The numbers</h2>
+    <div class="stat-row">
+      <div class="stat"><div class="value">7,043</div><div class="label">Customers</div></div>
+      <div class="stat"><div class="value">26.5%</div><div class="label">Churn rate</div></div>
+      <div class="stat"><div class="value badge-good">0.843</div><div class="label">Best ROC-AUC (Random Forest)</div></div>
+      <div class="stat"><div class="value">76%</div><div class="label">Recall on churners</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Problem</h2>
+    <p>
+      A telecom retention team needs to know, before a customer leaves, who's at risk —
+      and <em>why</em>. A black-box risk score isn't actionable on its own. The goal:
+      a model that ranks churn risk accurately, and explains its reasoning well enough
+      to inform an actual retention campaign.
+    </p>
+  </section>
+
+  <section>
+    <h2>Method</h2>
+    <ol>
+      <li><strong>Clean</strong> — coerce <code>TotalCharges</code> to numeric (11 blanks, all tenure=0 new customers, filled with 0).</li>
+      <li><strong>EDA</strong> — churn rate by contract type, tenure, monthly charges.</li>
+      <li><strong>Pipeline</strong> — <code>ColumnTransformer</code> (one-hot 15 categorical + scale 4 numeric features) into 3 classifiers.</li>
+      <li><strong>Models</strong> — Logistic Regression, Random Forest, XGBoost, all imbalance-aware, evaluated on a held-out 20% stratified test set (1,409 customers).</li>
+      <li><strong>Explainability</strong> — SHAP <code>TreeExplainer</code> on the winning model.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Churn drivers</h2>
+    <figure>
+      <img src="assets/churn_drivers.png" alt="Churn rate by contract type, tenure, and monthly charges">
+      <figcaption>Month-to-month contracts, low tenure, and high monthly charges all associate with higher churn.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Model comparison</h2>
+    <table>
+      <thead><tr><th>Model</th><th>ROC-AUC</th><th>PR-AUC</th></tr></thead>
+      <tbody>
+        <tr><td>Logistic Regression</td><td>0.842</td><td>0.633</td></tr>
+        <tr><td><strong>Random Forest</strong></td><td class="badge-good">0.843</td><td class="badge-good">0.653</td></tr>
+        <tr><td>XGBoost</td><td>0.841</td><td>0.652</td></tr>
+      </tbody>
+    </table>
+    <figure>
+      <img src="assets/model_comparison.png" alt="ROC and precision-recall curves for all three models">
+      <figcaption>ROC curves (left) and precision-recall curves (right) — all three models perform similarly; Random Forest edges ahead.</figcaption>
+    </figure>
+    <p>Random Forest test-set performance (accuracy alone is misleading on an imbalanced label — precision/recall on the "Churned" class is what matters):</p>
+    <table>
+      <thead><tr><th>Class</th><th>Precision</th><th>Recall</th><th>F1</th></tr></thead>
+      <tbody>
+        <tr><td>Stayed</td><td>0.90</td><td>0.76</td><td>0.82</td></tr>
+        <tr><td>Churned</td><td>0.53</td><td class="badge-good">0.76</td><td>0.63</td></tr>
+      </tbody>
+    </table>
+    <figure>
+      <img src="assets/confusion_matrix.png" alt="Confusion matrix for Random Forest model">
+      <figcaption>Confusion matrix — Random Forest, test set.</figcaption>
+    </figure>
+    <div class="callout">
+      Recall on churners is prioritized over precision by design (<code>class_weight="balanced"</code>) —
+      for a retention team, missing an actual churner is far more costly than a false
+      alarm (a discount offer to a loyal customer is cheap; losing a customer silently is not).
+    </div>
+  </section>
+
+  <section>
+    <h2>Explainability (SHAP)</h2>
+    <figure>
+      <img src="assets/shap_summary.png" alt="SHAP summary plot of feature importance">
+      <figcaption>SHAP feature importance — which features push predictions toward "churn."</figcaption>
+    </figure>
+    <ul>
+      <li><strong>Contract type dominates</strong> — month-to-month customers churn far more than 1-2 year contract customers. Highest-leverage lever: incentivize a switch to annual contracts.</li>
+      <li><strong>Tenure matters most in year 1</strong> — churn risk peaks before the ~12-month mark. An onboarding push in months 1-6 targets the riskiest window directly.</li>
+      <li><strong>High monthly charges without add-on services</strong> (no tech support / online security) is a recurring churn pattern — bundling support may offset price sensitivity.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Skills demonstrated</h2>
+    <div class="tags">
+      <span class="tag">scikit-learn Pipeline</span>
+      <span class="tag">XGBoost</span>
+      <span class="tag">SHAP</span>
+      <span class="tag">Class Imbalance</span>
+      <span class="tag">Model Evaluation</span>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    Data source: <a href="https://github.com/IBM/telco-customer-churn-on-icp4d">IBM Telco Customer Churn dataset</a>.
+    Full code in the <a href="notebooks/churn_model.ipynb">notebook</a>.
+  </div>
+</footer>
