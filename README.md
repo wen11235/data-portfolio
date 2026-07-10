@@ -13,6 +13,7 @@ Live site: `https://wen11235.github.io/<repo-name>/` (update once deployed).
 | 3 | [Data Job Market Skill Trends](projects/03-data-job-market-trends/) | Data Analyst / NLP | Text mining, skill-demand analysis, market research |
 | 4 | [Brain Tumor Segmentation (MRI)](projects/04-brain-tumor-segmentation/) | Deep Learning / Coursework | PyTorch, U-Net variants, evaluation methodology, model calibration |
 | 5 | [Retail Sales Interactive Dashboard](projects/05-retail-dashboard/) | Data Analyst / BI | Plotly, interactive dashboards, client-side filtering |
+| 6 | [A/B Test Analysis: Cookie Cats](projects/06-ab-testing/) | Data Scientist / Experimentation | Hypothesis testing, bootstrap resampling, statistical vs. practical significance |
 
 ## Running locally
 

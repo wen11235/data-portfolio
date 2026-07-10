@@ -1,0 +1,133 @@
+<meta charset="utf-8">
+<title>A/B Test Analysis: Cookie Cats Gate Placement — Report</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+
+<header class="hero" style="--accent: var(--hue-red);">
+  <div class="wrap">
+    <p class="eyebrow">Project 06 · Data Scientist · Experimentation</p>
+    <h1>A/B Test Analysis: Cookie Cats Gate Placement</h1>
+    <p class="lede">
+      Moving a mobile game's progression gate from level 30 to level 40 sounded
+      like a clear win for player retention. 90,189 randomized players say
+      otherwise.
+    </p>
+    <div class="links">
+      <a href="../../index.html">&larr; All projects</a>
+      <a href="notebooks/analysis.ipynb">Notebook</a>
+      <a href="README.md">Project README</a>
+      <a href="https://www.kaggle.com/datasets/mursideyarkin/mobile-games-ab-testing-cookie-cats">Dataset source</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap report">
+
+  <section>
+    <h2>The numbers</h2>
+    <div class="stat-row">
+      <div class="stat"><div class="value">90,189</div><div class="label">Randomized players</div></div>
+      <div class="stat"><div class="value">0.074</div><div class="label">1-day retention p-value (n.s.)</div></div>
+      <div class="stat"><div class="value badge-bad">0.0016</div><div class="label">7-day retention p-value</div></div>
+      <div class="stat"><div class="value badge-bad">−0.82pp</div><div class="label">7-day retention effect (gate_40 vs 30)</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Problem</h2>
+    <p>
+      Cookie Cats places a gate that pauses players until they wait or pay.
+      Product hypothesized that moving the gate later (level 30 → 40) — more
+      uninterrupted content before the first paywall — would improve
+      retention. 90,189 players were randomized into <code>gate_30</code>
+      (control) or <code>gate_40</code> (treatment) at install. Does the data
+      support the hypothesis?
+    </p>
+  </section>
+
+  <section>
+    <h2>Method</h2>
+    <ol>
+      <li><strong>Randomization check</strong> — group sizes and a chi-square balance test.</li>
+      <li><strong>Engagement check</strong> — distribution of rounds played, with the dataset's one extreme outlier (49,854 rounds) excluded from that comparison only.</li>
+      <li><strong>Two-proportion z-tests</strong> on 1-day and 7-day retention.</li>
+      <li><strong>Bootstrap confidence intervals</strong> (5,000 resamples) on the retention difference.</li>
+      <li><strong>Practical significance check</strong> — translate the effect into a player count at scale.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Engagement: no difference</h2>
+    <figure>
+      <img src="assets/engagement_distribution.png" alt="Distribution of rounds played by group">
+      <figcaption>Rounds played in the first 14 days — near-identical distributions (medians: 17 vs 16 rounds).</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Retention: 7-day tells the real story</h2>
+    <table>
+      <thead><tr><th>Metric</th><th>gate_30 (control)</th><th>gate_40 (treatment)</th><th>Difference</th><th>p-value</th></tr></thead>
+      <tbody>
+        <tr><td>1-day retention</td><td>44.82%</td><td>44.23%</td><td>+0.59 pp</td><td>0.074 (n.s.)</td></tr>
+        <tr><td>7-day retention</td><td>19.02%</td><td>18.20%</td><td class="badge-bad">+0.82 pp</td><td class="badge-bad">0.0016</td></tr>
+      </tbody>
+    </table>
+    <figure>
+      <img src="assets/retention_comparison.png" alt="Bar chart comparing 1-day and 7-day retention between groups">
+      <figcaption>gate_30 beats gate_40 on both metrics; only the 7-day gap clears statistical significance.</figcaption>
+    </figure>
+    <figure>
+      <img src="assets/bootstrap_ci.png" alt="Bootstrap distributions of the retention difference for both metrics">
+      <figcaption>5,000 bootstrap resamples. The 7-day interval sits entirely above zero — a consistent effect, not a one-off point estimate.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>A worked example of statistical vs. practical significance</h2>
+    <div class="callout">
+      The group split itself (49.6% / 50.4%) is technically distinguishable
+      from exactly 50/50 (p=0.009) at this sample size — flagged in the
+      notebook, and deliberately <em>not</em> treated as evidence of a broken
+      randomizer, since a gap this small has no plausible mechanism to bias
+      the retention results and is well within normal randomizer noise. The
+      same reasoning applies in reverse to the 7-day result: a 0.82-point
+      effect is small in absolute terms, but 7-day retention is one of the
+      most-watched health metrics in mobile games, the effect holds across
+      5,000 bootstrap resamples, and at ~1M monthly installs it translates to
+      roughly <strong>8,200 fewer 7-day-retained players per million
+      installs</strong>. Small ≠ ignorable when the metric is this central and
+      the sample size this large.
+    </div>
+  </section>
+
+  <section>
+    <h2>Recommendation</h2>
+    <p>
+      <strong>Do not move the gate to level 40.</strong> 7-day retention — the
+      more reliable of the two retention metrics — is significantly worse
+      with the later gate, consistently across resampling, with no engagement
+      upside to offset it. Whatever intuition motivated "move the gate
+      later," this test doesn't support it — a good reminder that A/B tests
+      exist precisely to catch cases where an intuitively appealing change
+      doesn't hold up.
+    </p>
+  </section>
+
+  <section>
+    <h2>Skills demonstrated</h2>
+    <div class="tags">
+      <span class="tag">Hypothesis Testing</span>
+      <span class="tag">Bootstrap Resampling</span>
+      <span class="tag">Experiment Design</span>
+      <span class="tag">Statistical Significance</span>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    Data source: <a href="https://www.kaggle.com/datasets/mursideyarkin/mobile-games-ab-testing-cookie-cats">Cookie Cats A/B Test dataset</a>.
+    Full code in the <a href="notebooks/analysis.ipynb">notebook</a>.
+  </div>
+</footer>
