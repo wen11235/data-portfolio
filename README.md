@@ -2,7 +2,7 @@
 
 A collection of end-to-end data analytics / data science projects, built to showcase skills for Data Analyst / Data Scientist roles. Each project uses a real public dataset and includes a Jupyter notebook (full analysis) plus a standalone `report.html` (shareable write-up with charts and findings).
 
-Live site: `https://<your-github-username>.github.io/<repo-name>/` (update once deployed).
+Live site: `https://wen11235.github.io/<repo-name>/` (update once deployed).
 
 ## Projects
 
@@ -11,6 +11,7 @@ Live site: `https://<your-github-username>.github.io/<repo-name>/` (update once 
 | 1 | [Retail Customer Analytics & Segmentation](projects/01-retail-customer-analytics/) | Data Analyst | SQL (DuckDB), RFM segmentation, cohort analysis, business storytelling |
 | 2 | [Customer Churn Prediction](projects/02-churn-prediction/) | Data Scientist | ML pipeline, model comparison, SHAP explainability |
 | 3 | [Data Job Market Skill Trends](projects/03-data-job-market-trends/) | Data Analyst / NLP | Text mining, skill-demand analysis, market research |
+| 4 | [Brain Tumor Segmentation (MRI)](projects/04-brain-tumor-segmentation/) | Deep Learning / Coursework | PyTorch, U-Net variants, evaluation methodology, model calibration |
 
 ## Running locally
 

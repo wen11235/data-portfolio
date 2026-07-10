@@ -1,6 +1,6 @@
 <meta charset="utf-8">
 <title>Your Name — Data Analyst / Data Scientist Portfolio</title>
-<meta name="description" content="Data analytics & data science portfolio — customer segmentation, churn prediction, and job market analysis.">
+<meta name="description" content="Data analytics & data science portfolio — customer segmentation, churn prediction, job market analysis, and deep learning medical image segmentation.">
 <link rel="stylesheet" href="assets/css/style.css">
 
 <header class="hero">
@@ -10,14 +10,14 @@
     <h1>Your Name</h1>
     <p class="lede">
       Recent Information Management graduate. I turn raw data into decisions —
-      SQL and RFM segmentation, ML pipelines with explainability, and text mining,
-      all built on real public datasets end to end.
+      SQL and RFM segmentation, ML pipelines with explainability, text mining, and
+      deep learning, all built on real datasets end to end.
     </p>
     <div class="links">
-      <!-- TODO: replace these with your real links -->
-      <a href="mailto:you@example.com">Email</a>
-      <a href="https://github.com/your-username">GitHub</a>
-      <a href="https://www.linkedin.com/in/your-profile">LinkedIn</a>
+      <!-- TODO: confirm you want this email public, or swap it -->
+      <a href="mailto:c.w.liou.73@gmail.com">Email</a>
+      <a href="https://github.com/wen11235">GitHub</a>
+      <a href="https://www.linkedin.com/in/chun-wen-liou-a4b047226/">LinkedIn</a>
       <a href="assets/resume.pdf">Resume</a>
     </div>
   </div>
@@ -94,6 +94,29 @@
         </div>
       </article>
 
+      <article class="card">
+        <a href="projects/04-brain-tumor-segmentation/report.html">
+          <img src="assets/img/project4-thumb.png" alt="Bar chart comparing full-dataset and positive-only evaluation Dice scores">
+        </a>
+        <div class="card-body">
+          <h3>Brain Tumor Segmentation (MRI)</h3>
+          <p>
+            Compared 4 U-Net variants for medical image segmentation, then showed the
+            benchmark itself is misleading — and that the model is confidently wrong
+            on its failures. Coursework project.
+          </p>
+          <div class="tags">
+            <span class="tag">PyTorch</span>
+            <span class="tag">Deep Learning</span>
+            <span class="tag">Model Calibration</span>
+          </div>
+          <div class="card-links">
+            <a href="projects/04-brain-tumor-segmentation/report.html">Report →</a>
+            <a href="projects/04-brain-tumor-segmentation/notebooks/brain_tumor_segmentation.ipynb">Notebook</a>
+          </div>
+        </div>
+      </article>
+
     </div>
   </section>
 
@@ -113,6 +136,7 @@
 
 <footer>
   <div class="wrap">
-    Built with plain HTML/CSS, hosted on GitHub Pages. Source: <a href="https://github.com/your-username/your-repo">GitHub repo</a>.
+    <!-- TODO: fill in the repo name once created -->
+    Built with plain HTML/CSS, hosted on GitHub Pages. Source: <a href="https://github.com/wen11235/your-repo-name">GitHub repo</a>.
   </div>
 </footer>
