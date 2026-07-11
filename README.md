@@ -8,10 +8,10 @@ Live site: `https://wen11235.github.io/<repo-name>/` (update once deployed).
 
 | # | Project | Focus | Key Skills |
 |---|---------|-------|------------|
-| 1 | [Retail Customer Analytics & Segmentation](projects/01-retail-customer-analytics/) | Data Analyst | SQL (DuckDB), RFM segmentation, cohort analysis, business storytelling |
-| 2 | [Customer Churn Prediction](projects/02-churn-prediction/) | Data Scientist | ML pipeline, model comparison, SHAP explainability |
-| 3 | [Data Job Market Skill Trends](projects/03-data-job-market-trends/) | Data Analyst / NLP | Text mining, skill-demand analysis, market research |
-| 4 | [Brain Tumor Segmentation (MRI)](projects/04-brain-tumor-segmentation/) | Deep Learning / Coursework | PyTorch, U-Net variants, evaluation methodology, model calibration |
+| 1 | [Brain Tumor Segmentation (MRI)](projects/04-brain-tumor-segmentation/) | Deep Learning / Coursework | PyTorch, U-Net variants, evaluation methodology, model calibration |
+| 2 | [Retail Customer Analytics & Segmentation](projects/01-retail-customer-analytics/) | Data Analyst | SQL (DuckDB), RFM segmentation, cohort analysis, business storytelling |
+| 3 | [Customer Churn Prediction](projects/02-churn-prediction/) | Data Scientist | ML pipeline, model comparison, SHAP explainability |
+| 4 | [Data Job Market Skill Trends](projects/03-data-job-market-trends/) | Data Analyst / NLP | Text mining, skill-demand analysis, market research |
 | 5 | [Retail Sales Interactive Dashboard](projects/05-retail-dashboard/) | Data Analyst / BI | Plotly, interactive dashboards, client-side filtering |
 | 6 | [A/B Test Analysis: Cookie Cats](projects/06-ab-testing/) | Data Scientist / Experimentation | Hypothesis testing, bootstrap resampling, statistical vs. practical significance |
 
