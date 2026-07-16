@@ -9,3 +9,8 @@ venv/
 # instead of being committed, to keep the repo lightweight.
 projects/01-retail-customer-analytics/data/online_retail.csv
 projects/03-data-job-market-trends/data/gsearch_jobs_2022.csv
+projects/07-fake-job-detection/data/fake_job_postings.csv
+
+# Raw uploaded source material not part of the polished site — the relevant
+# PDF/notebooks were reorganized into projects/07-fake-job-detection/
+/fake job project/

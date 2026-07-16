@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Detecting Fake Job Postings — Report</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+
+<header class="hero" style="--accent: var(--hue-orange);">
+  <div class="wrap">
+    <p class="eyebrow">Project 07 · Data Scientist · NLP · Coursework</p>
+    <h1>Detecting Fake Job Postings with Text Mining</h1>
+    <p class="lede">
+      17,880 real job postings, 4.84% fraudulent. A text classification
+      pipeline under severe class imbalance — traditional ML, SMOTE, and
+      (from the original run) deep learning and BERT.
+    </p>
+    <div class="links">
+      <a href="../../index.html">&larr; All projects</a>
+      <a href="notebooks/analysis.ipynb">Notebook</a>
+      <a href="README.md">Project README</a>
+      <a href="Text_Mining_Report.pdf">Original write-up</a>
+      <a href="https://www.kaggle.com/datasets/shivamb/real-or-fake-fake-jobposting-prediction">Dataset source</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap report">
+
+  <section>
+    <h2>The numbers</h2>
+    <div class="stat-row">
+      <div class="stat"><div class="value">17,880</div><div class="label">Job postings</div></div>
+      <div class="stat"><div class="value">4.84%</div><div class="label">Fraudulent (severe imbalance)</div></div>
+      <div class="stat"><div class="value badge-good">0.903</div><div class="label">Best F1, reproduced (SVM + SMOTE)</div></div>
+      <div class="stat"><div class="value">0.96</div><div class="label">Best F1, original run (CNN/BiLSTM)</div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="callout">
+      <strong>Scope note:</strong> the traditional ML baseline, SMOTE resampling,
+      and feature-importance analysis below are reproduced fresh in this repo's
+      notebook. The CNN/LSTM/BiLSTM and BERT results are cited from the original
+      coursework run — that training needs TensorFlow and, for BERT, a GPU
+      (the original ran on Colab; 5 epochs of BERT fine-tuning on CPU here
+      would take hours). Clearly marked below.
+    </div>
+  </section>
+
+  <section>
+    <h2>Problem</h2>
+    <p>
+      Fraudulent job postings cost applicants money, time, and sometimes their
+      identity. This project builds a text classifier that flags fraudulent
+      postings from their text content alone — title, company profile,
+      description, requirements, benefits — under a dataset where fraud is
+      under 5% of postings, so plain accuracy is meaningless (predicting
+      "real" for everything scores 95%).
+    </p>
+  </section>
+
+  <section>
+    <h2>Class imbalance</h2>
+    <figure>
+      <img src="assets/class_imbalance.png" alt="Bar chart showing 95.16% real vs 4.84% fraudulent postings">
+      <figcaption>17,014 real vs. 866 fraudulent postings — macro-averaged metrics used throughout, not plain accuracy.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Method (reproduced fresh)</h2>
+    <ol>
+      <li><strong>Clean</strong> — fill missing text fields, combine into one document per posting, lowercase, strip punctuation/numbers, remove stopwords, lemmatize.</li>
+      <li><strong>Split</strong> — 80/20 stratified (14,304 train / 3,576 test), vectorizers fit on training data only.</li>
+      <li><strong>Baseline models</strong> — Naive Bayes, Logistic Regression, SVM, Random Forest × TF-IDF/CountVectorizer.</li>
+      <li><strong>SMOTE</strong> — synthetic minority oversampling on the training set only.</li>
+      <li><strong>Feature importance</strong> — Logistic Regression + TF-IDF coefficients.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Results: traditional ML + SMOTE</h2>
+    <table>
+      <thead><tr><th>Vectorizer</th><th>Model</th><th>Balanced Acc.</th><th>Precision</th><th>Recall</th><th>F1</th></tr></thead>
+      <tbody>
+        <tr><td>CountVec</td><td>Logistic Regression (baseline)</td><td>0.885</td><td>0.887</td><td>0.885</td><td>0.886</td></tr>
+        <tr><td>TF-IDF</td><td>SVM (baseline)</td><td>0.795</td><td>0.990</td><td>0.795</td><td>0.866</td></tr>
+        <tr><td><strong>TF-IDF</strong></td><td><strong>SVM + SMOTE</strong></td><td class="badge-good">0.849</td><td class="badge-good">0.980</td><td class="badge-good">0.849</td><td class="badge-good">0.903</td></tr>
+        <tr><td>TF-IDF</td><td>Random Forest + SMOTE</td><td>0.829</td><td>0.983</td><td>0.829</td><td>0.890</td></tr>
+        <tr><td>TF-IDF</td><td>Logistic Regression + SMOTE</td><td>0.912</td><td>0.808</td><td>0.912</td><td>0.851</td></tr>
+      </tbody>
+    </table>
+    <figure>
+      <img src="assets/smote_effect.png" alt="Bar chart comparing recall before and after SMOTE across four models">
+      <figcaption>SMOTE's effect on recall (TF-IDF features) — gains vary by model, not universal.</figcaption>
+    </figure>
+    <p>
+      TF-IDF + SVM + SMOTE was the best F1 in this reproduced run. Logistic
+      Regression + SMOTE trades precision for the highest recall (0.912) —
+      the better choice if missing a fraudulent posting is costlier than a
+      false alarm.
+    </p>
+  </section>
+
+  <section>
+    <h2>What the model actually learned</h2>
+    <figure>
+      <img src="assets/feature_importance.png" alt="Bar charts of top fraud-indicative and real-indicative words by Logistic Regression coefficient">
+      <figcaption>Top words by Logistic Regression + TF-IDF coefficient.</figcaption>
+    </figure>
+    <p>
+      <strong>Fraud-indicative</strong>: <em>earn, entry, aptitude, financing, administrative, link, money, phone, cash</em>
+      — urgency and vague-compensation language. <strong>Real-indicative</strong>:
+      <em>team, client, website, growing, search, recruitment, employment, software, digital</em>
+      — specific professional/organizational context. This lines up with how these
+      scams actually read: promise easy money fast, skip the specifics.
+    </p>
+  </section>
+
+  <section>
+    <h2>Results: deep learning &amp; BERT (from the original run)</h2>
+    <table>
+      <thead><tr><th>Model</th><th>Type</th><th>Balanced Acc.</th><th>Precision</th><th>Recall</th><th>F1</th></tr></thead>
+      <tbody>
+        <tr><td><strong>CNN</strong></td><td>Deep Learning</td><td>0.930</td><td>0.99</td><td>0.93</td><td class="badge-good">0.96</td></tr>
+        <tr><td><strong>BiLSTM</strong></td><td>Deep Learning</td><td>0.930</td><td>0.99</td><td>0.93</td><td class="badge-good">0.96</td></tr>
+        <tr><td>LSTM</td><td>Deep Learning</td><td class="badge-bad">0.500</td><td>0.49</td><td>0.50</td><td class="badge-bad">0.49</td></tr>
+        <tr><td>BERT (fine-tuned)</td><td>Transformer</td><td>0.930</td><td>0.96</td><td>0.93</td><td>0.94</td></tr>
+      </tbody>
+    </table>
+    <div class="callout">
+      CNN and BiLSTM won outright; the unidirectional LSTM collapsed to
+      predicting the majority class entirely (0.49 F1 — essentially a coin
+      flip weighted by class frequency), likely too little context to pick up
+      scam signals scattered through longer postings. BERT was competitive
+      but didn't clearly beat the lighter CNN/BiLSTM despite far higher
+      training cost — a real accuracy-vs-cost tradeoff, not just "bigger
+      model wins."
+    </div>
+  </section>
+
+  <section>
+    <h2>Error analysis (from the original run)</h2>
+    <p>
+      The hardest cases to classify, across every model, shared a pattern:
+      <strong>short or generic descriptions</strong>, and <strong>fraudulent
+      postings written in polished, professional-sounding language</strong>
+      that mimics legitimate corporate tone — hard to catch even for a human
+      reader. Conversely, some real postings with enthusiastic marketing-style
+      language ("join our fast-growing team in a fun environment!") triggered
+      false positives, since that phrasing overlaps with scam-adjacent
+      lexical patterns.
+    </p>
+  </section>
+
+  <section>
+    <h2>Skills demonstrated</h2>
+    <div class="tags">
+      <span class="tag">Text Mining / NLTK</span>
+      <span class="tag">TF-IDF / CountVectorizer</span>
+      <span class="tag">SMOTE</span>
+      <span class="tag">CNN / LSTM / BiLSTM</span>
+      <span class="tag">BERT Fine-tuning</span>
+      <span class="tag">Model Interpretability</span>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    Data source: <a href="https://www.kaggle.com/datasets/shivamb/real-or-fake-fake-jobposting-prediction">Real / Fake Job Posting Prediction dataset</a>.
+    Full code in the <a href="notebooks/analysis.ipynb">notebook</a>,
+    full original methodology in the <a href="Text_Mining_Report.pdf">original write-up</a>.
+  </div>
+</footer>
+
+</body>
+</html>
