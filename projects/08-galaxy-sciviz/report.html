@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Scientific Data Visualization: Galaxy Simulation — Report</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+
+<header class="hero" style="--accent: var(--hue-green);">
+  <div class="wrap">
+    <p class="eyebrow">Project 08 · Data Visualization · Coursework</p>
+    <h1>Scientific Data Visualization: Galaxy Simulation Analysis</h1>
+    <p class="lede">
+      315,372 gas/star/dark-matter particles from a galaxy formation
+      simulation. No customers, no revenue — just the same visualization
+      judgment applied to a completely different data domain.
+    </p>
+    <div class="links">
+      <a href="../../index.html">&larr; All projects</a>
+      <a href="notebooks/analysis.ipynb">Notebook</a>
+      <a href="README.md">Project README</a>
+      <a href="https://yt-project.org/data/TipsyGalaxy.tar.gz">Dataset source</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap report">
+
+  <section>
+    <h2>The numbers</h2>
+    <div class="stat-row">
+      <div class="stat"><div class="value">315,372</div><div class="label">Particles in the snapshot</div></div>
+      <div class="stat"><div class="value">81%</div><div class="label">Stars flagged as pre-existing (not new)</div></div>
+      <div class="stat"><div class="value">10¹–10⁶</div><div class="label">Gas temperature range (K)</div></div>
+      <div class="stat"><div class="value">60 kpc</div><div class="label">Zoom needed to see the galaxy at all</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Why this exists</h2>
+    <p>
+      A portfolio full of customer churn, retail sales, and job postings
+      makes a specific kind of analyst look believable. It says nothing
+      about whether the underlying skill — deciding what chart a question
+      actually needs, and not shipping a chart that quietly misrepresents
+      the data — generalizes. This project tests that directly: astrophysics
+      simulation output, a genuinely unfamiliar data domain, same standards
+      applied.
+    </p>
+  </section>
+
+  <section>
+    <h2>Data &amp; tooling</h2>
+    <p>
+      <a href="https://yt-project.org/data/TipsyGalaxy.tar.gz">TipsyGalaxy</a> —
+      a sample N-body/SPH galaxy formation snapshot from the
+      <a href="https://yt-project.org/">yt-project</a> data archive, analyzed
+      with <code>yt</code>, a Python library purpose-built for astrophysical
+      simulation data (particle fields, spatial projection, unit-aware
+      physical quantities) rather than a general dataframe tool. One frozen
+      snapshot: 315,372 particles — 76,962 gas, 138,410 star, 100,000 dark
+      matter — at simulated time 20.1 (code units).
+    </p>
+  </section>
+
+  <section>
+    <h2>Spatial structure: zoom matters</h2>
+    <figure>
+      <img src="assets/gas_mass_projection.png" alt="Projected gas mass showing spiral galaxy structure, zoomed to 60 kiloparsecs">
+      <figcaption>Gas mass projection, zoomed to a 60 kpc window. The first pass — the full 1 Mpc simulation domain — rendered the entire galaxy as a barely-visible dot.</figcaption>
+    </figure>
+    <p>
+      A histogram can't show this. Spiral structure is only visible once
+      the plot is actually centered and scaled to where the galaxy is,
+      rather than the full (mostly empty) simulation domain.
+    </p>
+  </section>
+
+  <section>
+    <h2>"Most stars form in the future" — investigating rather than assuming</h2>
+    <div class="callout">
+      A first pass at star formation times showed 81% of star particles
+      (112,508 of 138,410) with a formation time <em>after</em> the
+      snapshot's current time — which would mean they hadn't formed yet.
+      Before shipping that, I checked units directly
+      (<code>ds.current_time.in_units(field.units)</code>) rather than
+      guessing — both fields are genuinely in the same units, so it isn't a
+      conversion bug. What it actually is: those 112,508 particles all share
+      the <em>exact same</em> value (6706.9, ~330&times; past the snapshot's
+      current time) — the signature of a sentinel flag marking
+      "pre-existing initial-condition star," not a real measurement. Only
+      the remaining 25,902 particles (19%) actually formed during the
+      simulated window.
+    </div>
+    <figure>
+      <img src="assets/star_formation_time.png" alt="Histogram of star formation times, excluding sentinel-flagged pre-existing stars">
+      <figcaption>Formation times for the 19% of stars that genuinely formed during the simulated period — the sentinel-flagged 81% excluded, not silently mixed in.</figcaption>
+    </figure>
+    <p>
+      Among the stars that did form during the run, formation is heaviest
+      early and continues at a roughly steady, noisy rate — consistent with
+      an actively star-forming galaxy, not a single formation burst.
+    </p>
+  </section>
+
+  <section>
+    <h2>Gas temperature: two axes need scale transforms</h2>
+    <figure>
+      <img src="assets/gas_temperature.png" alt="Gas temperature distribution on log-log axes">
+      <figcaption>Gas temperature spans ~5 orders of magnitude — both axes need log scales, or the plot is either a single spike or a flat line.</figcaption>
+    </figure>
+    <p>
+      Most gas mass sits in a cool, dense population (~10³–10⁴ K — the
+      galactic disk), with a long tail of progressively hotter, rarer gas:
+      shocked or diffuse gas heated by stellar feedback and gravitational
+      compression.
+    </p>
+  </section>
+
+  <section>
+    <h2>A metallicity plot that blew up to 10⁻³⁵</h2>
+    <figure>
+      <img src="assets/mass_vs_metallicity.png" alt="Bar chart of pristine vs enriched star particles, and scatter plot of stellar mass vs metallicity with clipped axis">
+      <figcaption>Left: 81% of stars have exactly zero recorded metallicity. Right: among the rest, mass vs. metallicity — axis clipped at 1e-6, not filtered further.</figcaption>
+    </figure>
+    <div class="callout">
+      The first version of this scatter plot had a y-axis stretching down to
+      <code>1e-35</code> — unreadable. ~81% of star particles have exactly
+      zero recorded metallicity (a pristine population, separate from the
+      formation-time sentinel above), and among the rest, values form a
+      smooth continuum down to floating-point noise rather than a clean
+      signal/noise split — so there's no principled place to draw a data
+      cutoff. The fix is clipping the <em>axis display range</em> and saying
+      so directly in the title, not filtering the data further or hiding
+      the noise silently.
+    </div>
+    <p>
+      Among enriched stars, metallicity rises with stellar mass and
+      converges toward ~0.01–0.04 at higher masses — consistent with more
+      massive stars forming later, from gas already enriched by earlier
+      generations.
+    </p>
+  </section>
+
+  <section>
+    <h2>Skills demonstrated</h2>
+    <div class="tags">
+      <span class="tag">Scientific Visualization</span>
+      <span class="tag">yt</span>
+      <span class="tag">Unit-aware Data Handling</span>
+      <span class="tag">Data Quality Investigation</span>
+      <span class="tag">Spatial Plotting</span>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    Data source: <a href="https://yt-project.org/data/TipsyGalaxy.tar.gz">TipsyGalaxy dataset</a> (yt-project).
+    Full code in the <a href="notebooks/analysis.ipynb">notebook</a>.
+  </div>
+</footer>
+
+</body>
+</html>

@@ -10,7 +10,14 @@ venv/
 projects/01-retail-customer-analytics/data/online_retail.csv
 projects/03-data-job-market-trends/data/gsearch_jobs_2022.csv
 projects/07-fake-job-detection/data/fake_job_postings.csv
+projects/08-galaxy-sciviz/data/TipsyGalaxy.tar.gz
+projects/08-galaxy-sciviz/data/TipsyGalaxy/
 
 # Raw uploaded source material not part of the polished site — the relevant
-# PDF/notebooks were reorganized into projects/07-fake-job-detection/
+# PDF/notebooks were reorganized into projects/07-fake-job-detection/ and
+# projects/08-galaxy-sciviz/. "Team DataDucks final" also contains a real
+# .env with live DB credentials — never commit that folder.
 /fake job project/
+/Team DataDucks final/
+/SciViz.ipynb
+/Extra＿Credit＿ Word:Text Data.ipynb
