@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ConcertNOW: Concert &amp; Trip Planning App — Report</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+
+<header class="hero" style="--accent: var(--hue-blue);">
+  <div class="wrap">
+    <p class="eyebrow">Project 09 · Full-Stack · Team Project · Coursework</p>
+    <h1>ConcertNOW: Concert &amp; Trip Planning App</h1>
+    <p class="lede">
+      Flask + MySQL, built with two teammates for a graduate database
+      systems course. Concert search, city-matched hotels, shareable
+      itineraries — and the database layer, not the frontend, enforcing
+      the rules.
+    </p>
+    <div class="links">
+      <a href="../../index.html">&larr; All projects</a>
+      <a href="code/">Code</a>
+      <a href="README.md">Project README</a>
+      <a href="Project_Report.pdf">Project Report PDF</a>
+      <a href="Stage3_Indexing_Analysis.pdf">Indexing Analysis PDF</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap report">
+
+  <section>
+    <h2>The numbers</h2>
+    <div class="stat-row">
+      <div class="stat"><div class="value">3</div><div class="label">Person team, CS411 (UIUC)</div></div>
+      <div class="stat"><div class="value">7</div><div class="label">Tables, normalized to 3NF</div></div>
+      <div class="stat"><div class="value">2+2</div><div class="label">Triggers + stored procedures</div></div>
+      <div class="stat"><div class="value badge-good">27%</div><div class="label">Best index cost reduction found</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Team &amp; my role</h2>
+    <p>
+      Built with <strong>Yi-Hsin Chang</strong> and <strong>Zoe Hanson</strong>
+      as "Team DataDucks" for CS411 (Database Systems, UIUC). From our
+      submitted project report's division-of-labor section: Yi-Hsin led
+      backend database implementation — SQL queries, stored procedure
+      design, managing the Cloud SQL connection. <strong>I concentrated on
+      backend logic, API development, and integrating advanced database
+      features — triggers and transaction-based stored procedures — into
+      the Flask application.</strong> Zoe built the full frontend.
+    </p>
+    <div class="callout">
+      The production app connects to a Google Cloud SQL instance through a
+      local proxy tunnel not reachable from outside our own machines. The
+      screenshots below are from a <strong>locally reconstructed
+      instance</strong> — the exact schema and SQL programs from this
+      project's code, running against a local MySQL server seeded with
+      sample data, with the real, unmodified <code>app.py</code> pointed at
+      it. Same code, same triggers, same stored procedures — a stand-in
+      dataset behind it, because the real one isn't reachable from here.
+    </div>
+  </section>
+
+  <section>
+    <h2>What it does</h2>
+    <figure>
+      <img src="assets/login.png" alt="ConcertNOW login page">
+      <figcaption>Sign-in — phone number as login ID.</figcaption>
+    </figure>
+    <figure>
+      <img src="assets/concert_search.png" alt="Concert search results for San Francisco">
+      <figcaption>Concert search by city and date.</figcaption>
+    </figure>
+    <figure>
+      <img src="assets/hotel_matching.png" alt="Hotel matching page showing hotels in the same city as the selected concert venue">
+      <figcaption>Hotel matching — <code>HOTEL.City = VENUE.City</code>, an intentional simplification of an originally-planned geospatial recommender (see below).</figcaption>
+    </figure>
+    <figure>
+      <img src="assets/my_trips_stats.png" alt="My Trips page with a trip statistics dashboard and saved trip list">
+      <figcaption>My Trips — the stats card (Total Trips / Public Trips / Cities Visited) is <code>sp_get_user_trip_stats</code> rendered directly, not computed client-side.</figcaption>
+    </figure>
+    <figure>
+      <img src="assets/community.png" alt="Community page showing public shared trips from other users">
+      <figcaption>Community — public trips only, enforced by the visibility triggers below, not a frontend filter.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Schema</h2>
+    <p>
+      7 tables: <code>USER</code>, <code>VENUE</code>, <code>EVENT</code>,
+      <code>HOTEL</code>, <code>REVIEW</code>, <code>TRIP</code>,
+      <code>SAVE</code>. One design change worth calling out: the original
+      schema stored hotel/venue location as latitude/longitude, which
+      implied a functional dependency <code>(Latitude, Longitude) →
+      (State, City)</code> and left the schema short of Third Normal Form.
+      Revised to <code>Address</code> + <code>Zipcode</code> + <code>City</code>
+      + <code>State</code> instead — removes the FD problem and fits the
+      app's actual access pattern (displaying and city-matching hotels, not
+      geospatial distance math).
+    </p>
+  </section>
+
+  <section>
+    <h2>Advanced database programs</h2>
+    <p>
+      <strong>Two triggers</strong> enforce a data-quality rule at the
+      database layer rather than trusting the frontend: a trip is
+      automatically set to <code>Private</code> on insert or update if it's
+      missing a hotel or has a note under 20 characters — keeping
+      incomplete or draft trips off the public Community page even if a bug
+      or an external script bypasses frontend validation.
+    </p>
+    <p><strong>Two stored procedures:</strong></p>
+    <ul>
+      <li><code>sp_get_user_trip_stats</code> — aggregates a user's total trips, public trips, and distinct cities visited directly in the database, powering the trip-stats dashboard above without the app layer computing it.</li>
+      <li><code>sp_copy_public_trip_to_user</code> — the "Save to My Trips" feature, wrapped in an explicit transaction (<code>READ COMMITTED</code> isolation, row-level locking via <code>FOR UPDATE</code>) with validation, duplicate-checking, and rollback on failure.</li>
+    </ul>
+    <pre style="background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:16px; overflow-x:auto; font-family:var(--mono); font-size:0.85rem; line-height:1.6;"><code>-- from code/advanced_database_programs.sql
+SELECT ... FROM TRIP T JOIN EVENT E ON T.EventId = E.EventId
+WHERE T.TripId = p_source_trip_id AND T.Visibility = 1
+FOR UPDATE;
+
+IF v_event_id IS NULL THEN
+    SET p_status_code = 1; ROLLBACK;
+ELSEIF EXISTS (SELECT 1 FROM TRIP WHERE UserId = p_target_user_id AND EventId = v_event_id) THEN
+    SET p_status_code = 2; ROLLBACK;
+ELSE
+    INSERT INTO TRIP (...) VALUES (...);
+    COMMIT;
+END IF;</code></pre>
+  </section>
+
+  <section>
+    <h2>Index design: an honest negative result</h2>
+    <p>
+      Query cost analysis (<code>EXPLAIN</code>) across 4 representative
+      queries, testing several candidate indexes on each. Not every index
+      helped:
+    </p>
+    <table>
+      <thead><tr><th>Query</th><th>Baseline cost</th><th>Best index tried</th><th>Cost after</th></tr></thead>
+      <tbody>
+        <tr><td>Hotels in a city with avg rating ≥ 4.5</td><td>288,072</td><td><code>HOTEL(City)</code></td><td class="badge-good">203,339</td></tr>
+        <tr><td>Top venues by upcoming events + hotel quality</td><td>96,654</td><td><code>EVENT(EventDate)</code></td><td>96,654 (no change)</td></tr>
+        <tr><td>Hotels in NYC, most reviews, above-avg rating</td><td>311,108</td><td><code>HOTEL(City, HotelCode)</code></td><td class="badge-good">205,124</td></tr>
+        <tr><td>Upcoming events in the most popular zipcode</td><td>7,122</td><td><code>EVENT(EventDate)</code></td><td class="badge-bad">17,046 (worse)</td></tr>
+      </tbody>
+    </table>
+    <div class="callout">
+      The <code>REVIEW(Rating)</code> index actually <em>increased</em> cost
+      for query 3 before the composite <code>HOTEL(City, HotelCode)</code>
+      index found the real win — and one index made a query slower, not
+      faster. Location-based and join-supporting indexes consistently
+      helped; indexes on columns used only for aggregation/sorting mostly
+      didn't, because the query's real cost was in building temporary
+      tables for the joins, not scanning the base table. Full detail,
+      including the query plans, in the
+      <a href="Stage3_Indexing_Analysis.pdf">indexing analysis PDF</a>.
+    </div>
+  </section>
+
+  <section>
+    <h2>Skills demonstrated</h2>
+    <div class="tags">
+      <span class="tag">Flask REST API</span>
+      <span class="tag">MySQL Triggers</span>
+      <span class="tag">Transactions &amp; Locking</span>
+      <span class="tag">Schema Normalization</span>
+      <span class="tag">Query Optimization</span>
+      <span class="tag">Team Collaboration</span>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    Team project with Yi-Hsin Chang and Zoe Hanson (CS411, UIUC).
+    Full code in <a href="code/">code/</a>, full write-up in the
+    <a href="Project_Report.pdf">Project Report PDF</a>.
+  </div>
+</footer>
+
+</body>
+</html>

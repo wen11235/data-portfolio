@@ -16,6 +16,7 @@ Live site: `https://wen11235.github.io/<repo-name>/` (update once deployed).
 | 6 | [A/B Test Analysis: Cookie Cats](projects/06-ab-testing/) | Data Scientist / Experimentation | Hypothesis testing, bootstrap resampling, statistical vs. practical significance |
 | 7 | [Detecting Fake Job Postings](projects/07-fake-job-detection/) | Data Scientist / NLP / Coursework | Text mining, TF-IDF, SMOTE, CNN/BiLSTM/BERT, model interpretability |
 | 8 | [Scientific Data Visualization: Galaxy Simulation](projects/08-galaxy-sciviz/) | Data Visualization / Coursework | yt, scientific computing, unit-aware data handling, data quality investigation |
+| 9 | [ConcertNOW: Concert & Trip Planning App](projects/09-concert-trip-planner/) | Full-Stack / Team Project / Coursework | Flask REST API, MySQL triggers & stored procedures, transactions, schema normalization, query optimization |
 
 ## Running locally
 
