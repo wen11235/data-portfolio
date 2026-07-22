@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ConcertNOW | Saved Trips</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+<!-- NAVBAR -->
+<nav class="bg-white shadow-md sticky top-0 z-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
+        <span class="text-2xl font-extrabold text-purple-600">ConcertNOW</span>
+        <div class="flex items-center space-x-4">
+            <a href="/index" class="text-gray-500 hover:text-purple-600 px-3 py-2 text-sm font-medium">Home</a>
+            <a href="/itinerary/saved"
+               class="text-purple-600 font-semibold border-b-2 border-purple-600 px-3 py-2 text-sm">
+                Saved Trips
+            </a>
+            <a href="/community" class="text-gray-500 hover:text-purple-600 px-3 py-2 text-sm font-medium">Community</a>
+            <button onclick="handleLogout()"
+                    class="text-gray-500 hover:text-red-500 px-3 py-2 rounded-md text-sm font-medium">
+                Log Out
+            </button>
+        </div>
+    </div>
+</nav>
+
+<!-- MAIN -->
+<main class="max-w-7xl mx-auto p-6 lg:p-12">
+    <h1 class="text-4xl font-extrabold text-gray-900 mb-2">My Saved Trips</h1>
+    <p class="text-lg text-gray-600 mb-8">Review, edit, and manage all your concert plans.</p>
+
+    <!-- Stats Section -->
+    <section id="stats-card" class="mb-10 hidden">
+        <h2 class="text-xl font-semibold text-gray-800 mb-3">My Trip Stats</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="bg-white rounded-xl shadow p-4">
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Trips</p>
+                <p id="stat-total-trips" class="mt-2 text-2xl font-bold text-indigo-600">0</p>
+            </div>
+            <div class="bg-white rounded-xl shadow p-4">
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Public Trips</p>
+                <p id="stat-public-trips" class="mt-2 text-2xl font-bold text-green-600">0</p>
+            </div>
+            <div class="bg-white rounded-xl shadow p-4">
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Cities Visited</p>
+                <p id="stat-distinct-cities" class="mt-2 text-2xl font-bold text-purple-600">0</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Trip Cards -->
+    <div id="trips-container" class="space-y-8">
+        <div id="loading-message" class="text-center py-10 text-xl text-gray-500">
+            Loading your saved itineraries...
+        </div>
+    </div>
+
+    <div class="mt-12 pt-6 border-t border-gray-200 text-center">
+        <a href="/community" class="text-lg font-semibold text-blue-600 hover:text-blue-800">
+            Explore Community Trips &rarr;
+        </a>
+    </div>
+</main>
+
+<script>
+const API_BASE_URL = 'http://127.0.0.1:5000/api';
+
+document.addEventListener('DOMContentLoaded', () => {
+    const userId = localStorage.getItem('concertNowUserId');
+    if (!userId) {
+        window.location.href = '/';
+        return;
+    }
+
+    fetchSavedTrips(userId);
+    fetchTripStats(userId);
+});
+
+function handleLogout() {
+    localStorage.removeItem('concertNowFirstName');
+    localStorage.removeItem('concertNowUserId');
+    window.location.href = '/';
+}
+
+async function fetchSavedTrips(userId) {
+    const container = document.getElementById('trips-container');
+    const loadingMessage = document.getElementById('loading-message');
+
+    loadingMessage.classList.remove('hidden');
+    loadingMessage.textContent = 'Loading your saved itineraries...';
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/itineraries/${userId}`);
+        const data = await response.json();
+
+        if (response.ok && data.itineraries && data.itineraries.length > 0) {
+            renderTrips(data.itineraries);
+        } else {
+            container.innerHTML = `
+                <div class="text-center p-10 bg-white rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold text-gray-700">No Trips Saved Yet!</h2>
+                    <p class="text-gray-500 mt-2">
+                        Start by searching for concerts on the
+                        <a href="/index" class="text-purple-600 hover:underline">Home Page</a>.
+                    </p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('[saved] Error fetching trips:', error);
+        container.innerHTML = `
+            <div class="text-center py-10 text-xl text-red-500">
+                ❌ Network Error: Could not load your saved trips.
+            </div>`;
+    } finally {
+        loadingMessage.classList.add('hidden');
+    }
+}
+
+function renderTrips(itineraries) {
+    const container = document.getElementById('trips-container');
+    container.innerHTML = '';
+
+    itineraries.forEach((item, idx) => {
+        const card = document.createElement('div');
+        card.className = 'trip-card bg-white p-6 rounded-xl shadow-xl border-l-4 border-blue-500';
+
+        const noteText = item.UserNote || 'No notes yet.';
+        const safeNote = (item.UserNote || '')
+            .replace(/\\/g, '\\\\')
+            .replace(/'/g, "\\'")
+            .replace(/\n/g, '\\n');
+
+        const visibilityLabel = item.Visibility === 1 ? 'Public' : 'Private';
+        const visibilityClass = item.Visibility === 1
+            ? 'bg-green-100 text-green-700'
+            : 'bg-gray-200 text-gray-700';
+
+        const toggleButtonLabel = item.Visibility === 1 ? 'Make Private' : 'Make Public';
+
+        card.innerHTML = `
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <span class="bg-blue-100 text-blue-700 text-xs font-bold px-2.5 py-0.5 rounded-full">
+                        Trip #${idx + 1} (ID: ${item.TripId})
+                    </span>
+                    <h3 class="text-2xl font-bold text-gray-800 mt-1">${item.EventName}</h3>
+                </div>
+                <div class="flex flex-col items-end space-y-2">
+                    <span class="${visibilityClass} text-xs font-semibold px-2 py-1 rounded-full">
+                        ${visibilityLabel}
+                    </span>
+                    <button
+                        onclick="handleToggleVisibility(${item.TripId}, ${item.Visibility})"
+                        class="text-xs font-medium text-blue-600 hover:text-blue-800 underline">
+                        ${toggleButtonLabel}
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-b py-4">
+                <div>
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Date</p>
+                    <p class="text-md font-medium text-gray-700">${item.EventDate}</p>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">City</p>
+                    <p class="text-md font-medium text-gray-700">${item.City}</p>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Hotel</p>
+                    <p class="text-md font-medium text-gray-700">
+                        ${item.HotelName ? item.HotelName : '<span class="text-gray-400 italic">Not selected</span>'}
+                    </p>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Notes</p>
+                <p class="text-sm text-gray-700 whitespace-pre-line">${noteText}</p>
+            </div>
+
+            <div class="flex space-x-3 mt-4 justify-end">
+                <button
+                    onclick="handleEditTrip(${item.TripId}, '${safeNote}')"
+                    class="py-1 px-3 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition">
+                    Edit
+                </button>
+                <button
+                    onclick="handleDeleteTrip(${item.TripId})"
+                    class="py-1 px-3 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition">
+                    Delete
+                </button>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+}
+
+async function handleEditTrip(tripId, currentNote) {
+    const newNote = prompt('Edit your notes for this trip:', currentNote || '');
+    if (newNote === null) return;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/trips/${tripId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userNote: newNote })
+        });
+        const data = await response.json();
+
+        if (response.ok) {
+            alert(`Trip #${tripId} updated.`);
+            const userId = localStorage.getItem('concertNowUserId');
+            if (userId) {
+                fetchSavedTrips(userId);
+                fetchTripStats(userId);
+            }
+        } else {
+            alert(`Failed to update trip: ${data.message || 'Unknown error.'}`);
+        }
+    } catch (error) {
+        console.error('Update trip error:', error);
+        alert('Network error: Failed to update trip.');
+    }
+}
+
+async function handleDeleteTrip(tripId) {
+    if (!confirm(`Are you sure you want to delete Trip #${tripId}?`)) return;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/trips/${tripId}`, {
+            method: 'DELETE'
+        });
+        const data = await response.json();
+
+        if (response.ok) {
+            alert(`Trip #${tripId} deleted.`);
+            const userId = localStorage.getItem('concertNowUserId');
+            if (userId) {
+                fetchSavedTrips(userId);
+                fetchTripStats(userId);
+            }
+        } else {
+            alert(`Failed to delete trip: ${data.message || 'Unknown error.'}`);
+        }
+    } catch (error) {
+        console.error('Delete trip error:', error);
+        alert('Network error: Failed to delete trip.');
+    }
+}
+
+async function handleToggleVisibility(tripId, currentVisibility) {
+    const newVisibility = currentVisibility === 1 ? 0 : 1;
+
+    try {
+        const resp = await fetch(`${API_BASE_URL}/trips/${tripId}/visibility`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ visibility: newVisibility })
+        });
+
+        const data = await resp.json();
+
+        if (!resp.ok) {
+            alert(data.message || 'Failed to update visibility.');
+            return;
+        }
+
+
+        if (data.visibility === 0 && newVisibility === 1) {
+            alert(data.message || 'Trip kept as Private due to DB rules.');
+        } else {
+            alert(data.message || 'Visibility updated.');
+        }
+
+        const userId = localStorage.getItem('concertNowUserId');
+        if (userId) {
+            fetchSavedTrips(userId);
+            fetchTripStats(userId);
+        }
+    } catch (err) {
+        console.error('Error toggling visibility:', err);
+        alert('Network error: failed to update visibility.');
+    }
+}
+
+async function fetchTripStats(userId) {
+    const statsSection = document.getElementById('stats-card');
+    const totalEl = document.getElementById('stat-total-trips');
+    const publicEl = document.getElementById('stat-public-trips');
+    const cityEl = document.getElementById('stat-distinct-cities');
+
+    try {
+        const resp = await fetch(`${API_BASE_URL}/users/${userId}/trip_stats`);
+        if (!resp.ok) return;
+
+        const stats = await resp.json();
+
+        totalEl.textContent = stats.total_trips ?? 0;
+        publicEl.textContent = stats.public_trips ?? 0;
+        cityEl.textContent = stats.distinct_cities ?? 0;
+
+        statsSection.classList.remove('hidden');
+    } catch (err) {
+        console.error('[saved] Error fetching trip stats:', err);
+    }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ConcertNOW | Home</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
+        }
+
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+
+<nav class="bg-white shadow-md sticky top-0 z-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-16">
+            <div class="flex-shrink-0">
+                <span class="text-2xl font-extrabold text-purple-600">ConcertNOW</span>
+            </div>
+            <div class="flex space-x-4 items-center">
+                <a href="/index" class="text-purple-600 font-semibold border-b-2 border-purple-600 px-3 py-2 text-sm">
+                    Home
+                </a>
+                <a href="/itinerary/saved" class="text-gray-500 hover:text-purple-600 px-3 py-2 text-sm font-medium">
+                    My Trip
+                </a>
+                <a href="/community" class="text-gray-500 hover:text-purple-600 px-3 py-2 text-sm font-medium">
+                    Community
+                </a>
+                <button onclick="handleLogout()"
+                        class="bg-red-500 hover:bg-red-600 text-white font-medium py-1 px-3 rounded text-sm transition duration-200">
+                    Log Out
+                </button>
+            </div>
+        </div>
+    </div>
+</nav>
+
+
+<main class="max-w-4xl mx-auto p-6 lg:p-12">
+
+    <div id="welcome-banner" class="bg-gradient-to-r from-purple-500 to-indigo-600 p-6 rounded-xl shadow-lg mb-10">
+        <h2 class="text-2xl sm:text-3xl font-bold text-white mb-1">
+            Welcome, <span id="username-display">Guest</span>!
+        </h2>
+        <p class="text-purple-100 text-sm sm:text-base">
+            Let’s start planning your next unforgettable music journey.
+        </p>
+    </div>
+
+    <div class="bg-white p-6 sm:p-8 rounded-xl shadow-xl border border-gray-100">
+        <h3 class="text-xl font-semibold text-gray-800 mb-6 border-b pb-3">Search Concerts</h3>
+
+        <form id="search-form" class="space-y-6">
+            <div>
+                <label for="location" class="block text-sm font-medium text-gray-700 mb-2">City/Location (Keyword
+                    Search)</label>
+                <input type="text" id="location" required placeholder="e.g.: Chicago, Los Angeles.."
+                       class="w-full p-3 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500 transition duration-150">
+            </div>
+
+            <div>
+                <label for="date-start" class="block text-sm font-medium text-gray-700 mb-2">Date (Within next 5
+                    days)</label>
+                <input type="date" id="date-start" required
+                       class="w-full p-3 border border-gray-300 rounded-lg text-gray-800 focus:ring-purple-500 focus:border-purple-500 transition duration-150">
+            </div>
+
+            <button type="submit"
+                    class="w-full py-3 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600 transition duration-150 transform hover:scale-[1.01] focus:outline-none focus:ring-4 focus:ring-green-500 focus:ring-opacity-50">
+                Find Concerts
+            </button>
+        </form>
+    </div>
+</main>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const firstName = localStorage.getItem('concertNowFirstName');
+        const userId = localStorage.getItem('concertNowUserId');
+        const usernameDisplay = document.getElementById('username-display');
+        const dateInput = document.getElementById('date-start');
+        const searchForm = document.getElementById('search-form');
+
+
+        if (!userId || !firstName) {
+            window.location.href = '/';
+            return;
+        }
+        usernameDisplay.textContent = firstName;
+
+
+        const today = new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(today.getDate() + 1);
+
+        const maxDate = new Date(today);
+        maxDate.setDate(today.getDate() + 5);
+
+        function formatDate(date) {
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        }
+
+        dateInput.min = formatDate(tomorrow);
+        dateInput.max = formatDate(maxDate);
+        dateInput.value = formatDate(tomorrow);
+
+
+        searchForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const location = document.getElementById('location').value.trim();
+            const date = document.getElementById('date-start').value;
+
+            if (!location) {
+                alert('Please enter a City/Location for the search.');
+                return;
+            }
+
+
+            window.location.href = `/concerts?location=${encodeURIComponent(location)}&date=${date}`;
+        });
+    });
+
+    function handleLogout() {
+        localStorage.removeItem('concertNowFirstName');
+        localStorage.removeItem('concertNowUserId');
+        window.location.href = '/';
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ConcertNOW | Choose Hotel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        body {
+            background-color: #0f172a;
+            color: white;
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen p-6">
+    <a href="/itinerary/itinerary" class="text-purple-400 underline">← Back to Event</a>
+
+    <h1 class="text-3xl font-bold mt-6">Optional: Choose a Hotel</h1>
+    <p class="text-gray-300 mt-1">You can select a hotel OR skip this step.</p>
+
+    <div id="event-info" class="mt-8 p-4 rounded-xl bg-slate-800 border border-slate-700"></div>
+
+    <h2 class="text-2xl mt-10 mb-4">Nearby Hotels</h2>
+    <div id="hotels-list" class="space-y-4"></div>
+
+    <button id="skip-btn"
+            class="mt-10 w-full bg-purple-600 hover:bg-purple-700 py-3 rounded-lg font-semibold">
+        Skip — Add to Itinerary Without Hotel
+    </button>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const eventId = params.get("eventId");
+        const userId = localStorage.getItem("concertNowUserId");
+
+        async function loadHotels() {
+            const res = await fetch(`/api/hotels/${eventId}`);
+            const data = await res.json();
+
+            document.getElementById("event-info").innerHTML = `
+                <h2 class="text-xl font-bold">${data.event_name}</h2>
+                <p class="text-gray-400">${data.venue_info}</p>
+            `;
+
+            const list = document.getElementById("hotels-list");
+
+            if (!data.hotels.length) {
+                list.innerHTML = `<p class="text-gray-400">No hotels found for this city.</p>`;
+                return;
+            }
+
+            data.hotels.forEach(hotel => {
+                const card = document.createElement("div");
+                card.className = "p-4 rounded-xl bg-slate-900 border border-slate-700 flex justify-between items-center";
+
+                card.innerHTML = `
+                    <div>
+                        <h3 class="text-lg font-semibold">${hotel.Name}</h3>
+                        <p class="text-gray-400">${hotel.Address}</p>
+                        <p class="text-yellow-400">⭐ ${hotel.StarRating ?? "N/A"}</p>
+                    </div>
+                    <button class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg font-semibold">
+                        Select
+                    </button>
+                `;
+
+                card.querySelector("button").onclick = () => addToTrip(hotel.HotelCode);
+
+                list.appendChild(card);
+            });
+        }
+
+        async function addToTrip(hotelCode = null) {
+            const payload = {
+                userId,
+                eventId,
+                hotelCode,
+                note: "",
+                visibility: 1
+            };
+
+            const res = await fetch("/api/itinerary", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+
+            if (res.status === 201) {
+                alert("Added to your itinerary!");
+                window.location.href = "/itinerary/saved";
+            } else {
+                alert(data.message || "Error adding trip.");
+            }
+        }
+
+        document.getElementById("skip-btn").onclick = () => addToTrip(null);
+
+        loadHotels();
+    </script>
+</body>
+</html>

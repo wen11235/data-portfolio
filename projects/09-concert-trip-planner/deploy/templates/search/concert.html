@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ConcertNOW | Concert Results</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f7f9fb; }
+    </style>
+</head>
+
+<body class="min-h-screen">
+
+<!-- NAV -->
+<nav class="bg-white shadow-md sticky top-0 z-10">
+    <div class="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center">
+        <span class="text-2xl font-extrabold text-purple-600">ConcertNOW</span>
+        <div class="flex space-x-4 text-sm">
+            <a href="/index" class="text-gray-500 hover:text-purple-600 px-3 py-2">Home</a>
+            <a href="/concerts"
+               class="text-purple-600 font-semibold border-b-2 border-purple-600 px-3 py-2">
+                Concert Results
+            </a>
+            <a href="/itinerary/saved" class="text-gray-500 hover:text-purple-600 px-3 py-2">
+                My Trips
+            </a>
+            <a href="/community" class="text-gray-500 hover:text-purple-600 px-3 py-2">
+                Community
+            </a>
+        </div>
+    </div>
+</nav>
+
+<!-- MAIN -->
+<main class="max-w-5xl mx-auto p-6 lg:p-10">
+    <header class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">
+            Concerts in <span id="city-label">...</span>
+        </h1>
+        <p class="text-gray-600 text-sm mt-1">
+            Showing shows for <span id="date-label" class="font-semibold"></span>
+        </p>
+    </header>
+
+    <section id="results-container" class="grid gap-5 md:grid-cols-2"></section>
+
+    <div id="empty-state" class="hidden mt-12 text-center text-gray-500">
+        <p class="text-lg mb-1">No concerts found for your search.</p>
+        <p class="text-sm">Try another city or date.</p>
+    </div>
+</main>
+
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+    const params = new URLSearchParams(window.location.search);
+    const city = params.get("location");
+    const date = params.get("date");
+
+    document.getElementById("city-label").textContent = city || "—";
+    document.getElementById("date-label").textContent = date || "—";
+
+    if (!city || !date) return;
+
+    const response = await fetch(`/api/concerts?location=${encodeURIComponent(city)}&date=${date}`);
+    const data = await response.json();
+
+    const container = document.getElementById("results-container");
+    const empty = document.getElementById("empty-state");
+
+    if (!data.concerts || data.concerts.length === 0) {
+        empty.classList.remove("hidden");
+        return;
+    }
+
+    data.concerts.forEach(event => {
+        const card = document.createElement("article");
+        card.className =
+            "bg-white border border-gray-100 rounded-xl shadow-md hover:shadow-lg p-5 cursor-pointer transition";
+
+        card.innerHTML = `
+            <h2 class="text-lg font-bold text-gray-900">${event.EventName}</h2>
+            <p class="text-sm text-gray-700 mt-1">${event.City}</p>
+            <p class="text-sm text-gray-500">${event.EventDate} • ${event.EventTime}</p>
+            <div class="mt-4 text-sm text-purple-600 underline">View Details</div>
+        `;
+
+        card.onclick = () => {
+            window.location.href = `/concerts/detail?eventId=${event.EventId}`;
+        };
+
+        container.appendChild(card);
+    });
+});
+</script>
+</body>
+</html>

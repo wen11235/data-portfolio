@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: concertnow
+    runtime: python
+    rootDir: projects/09-concert-trip-planner/deploy
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    plan: free
+    envVars:
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_DATABASE
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false

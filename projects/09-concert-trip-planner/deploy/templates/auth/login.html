@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ConcertNOW | Sign In / Register</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d1117;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+<div class="w-full max-w-sm bg-gray-800 p-8 rounded-xl shadow-2xl border border-gray-700">
+    <h1 class="text-3xl font-bold text-center text-white mb-6">ConcertNOW</h1>
+
+    <div class="mb-6 p-3 rounded-lg bg-purple-900/30 border border-purple-700 text-xs text-purple-200 leading-relaxed">
+        <strong>Portfolio demo</strong> — coursework project, not a production app.
+        Passwords aren't hashed in this build, so please don't reuse a real one.
+        Try it with <strong>5551234567</strong> / <strong>demo1234</strong>, or register
+        with any throwaway phone number + password.
+    </div>
+
+    <p class="text-center text-gray-400 mb-8" id="form-title">
+        Sign In to Your Account
+    </p>
+
+    <!-- Dynamic Form Container -->
+    <div id="auth-form">
+        <!-- Sign In View (Default) -->
+        <div id="sign-in-view">
+            <div class="mb-4">
+                <label for="login-username" class="block text-sm font-medium text-gray-300 mb-2">
+                    Login ID (Phone Number)
+                </label>
+                <input
+                    type="text"
+                    id="login-username"
+                    placeholder="Enter your unique Login ID (Phone)"
+                    class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500
+                           focus:ring-purple-500 focus:border-purple-500 transition duration-150"
+                >
+            </div>
+
+            <div class="mb-6">
+                <label for="login-password" class="block text-sm font-medium text-gray-300 mb-2">
+                    Password
+                </label>
+                <input
+                    type="password"
+                    id="login-password"
+                    placeholder="Enter your password"
+                    class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500
+                           focus:ring-purple-500 focus:border-purple-500 transition duration-150"
+                >
+            </div>
+        </div>
+
+        <!-- Registration View -->
+        <div id="register-view" class="hidden">
+            <div class="mb-4">
+                <label for="reg-username" class="block text-sm font-medium text-gray-300 mb-2">
+                    Unique Login ID (Phone Number)
+                </label>
+                <input
+                    type="text"
+                    id="reg-username"
+                    placeholder="Enter a unique phone number or ID"
+                    class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500
+                           focus:ring-purple-500 focus:border-purple-500 transition duration-150"
+                >
+            </div>
+            <div class="mb-4">
+                <label for="reg-password" class="block text-sm font-medium text-gray-300 mb-2">
+                    Password
+                </label>
+                <input
+                    type="password"
+                    id="reg-password"
+                    placeholder="Choose a secure password"
+                    class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500
+                           focus:ring-purple-500 focus:border-purple-500 transition duration-150"
+                >
+            </div>
+            <div class="mb-4 grid grid-cols-2 gap-3">
+                <div>
+                    <label for="reg-firstname" class="block text-sm font-medium text-gray-300 mb-2">
+                        First Name
+                    </label>
+                    <input
+                        type="text"
+                        id="reg-firstname"
+                        placeholder="Your first name"
+                        class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500
+                               focus:ring-purple-500 focus:border-purple-500 transition duration-150"
+                    >
+                </div>
+                <div>
+                    <label for="reg-lastname" class="block text-sm font-medium text-gray-300 mb-2">
+                        Last Name
+                    </label>
+                    <input
+                        type="text"
+                        id="reg-lastname"
+                        placeholder="Your last name"
+                        class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500
+                               focus:ring-purple-500 focus:border-purple-500 transition duration-150"
+                    >
+                </div>
+            </div>
+        </div>
+
+        <!-- Message Box -->
+        <div id="message-box"
+             class="hidden p-3 mb-4 text-sm font-medium text-center rounded-lg"
+             role="alert"></div>
+
+        <!-- Action Buttons -->
+        <div class="space-y-4">
+            <button
+                id="primaryBtn"
+                onclick="handlePrimaryAction()"
+                class="w-full py-3 bg-purple-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700
+                       transition duration-150 transform hover:scale-[1.01] focus:outline-none
+                       focus:ring-4 focus:ring-purple-500 focus:ring-opacity-50">
+                Sign In
+            </button>
+            <button
+                id="toggleBtn"
+                onclick="toggleForm()"
+                class="w-full py-3 bg-transparent text-blue-400 border border-blue-400 font-semibold rounded-lg
+                       hover:bg-blue-900/30 transition duration-150 focus:outline-none
+                       focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50">
+                Create Account
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+const API_BASE_URL = 'http://127.0.0.1:5000/api';
+const messageBox = document.getElementById('message-box');
+const formTitle = document.getElementById('form-title');
+const signInView = document.getElementById('sign-in-view');
+const registerView = document.getElementById('register-view');
+const primaryBtn = document.getElementById('primaryBtn');
+const toggleBtn = document.getElementById('toggleBtn');
+
+let isRegisterMode = false;
+
+function showMessage(text, className) {
+    messageBox.textContent = text;
+    messageBox.className = `${className} p-3 mb-4 text-sm font-medium text-center rounded-lg`;
+    messageBox.classList.remove('hidden');
+    setTimeout(() => {
+        messageBox.classList.add('hidden');
+    }, 5000);
+}
+
+function toggleForm() {
+    isRegisterMode = !isRegisterMode;
+    if (isRegisterMode) {
+        formTitle.textContent = "Create Your ConcertNOW Account";
+        signInView.classList.add('hidden');
+        registerView.classList.remove('hidden');
+        primaryBtn.textContent = 'Register';
+        toggleBtn.textContent = 'I already have an account (Sign In)';
+    } else {
+        formTitle.textContent = "Sign In to Your Account";
+        signInView.classList.remove('hidden');
+        registerView.classList.add('hidden');
+        primaryBtn.textContent = 'Sign In';
+        toggleBtn.textContent = 'Create Account';
+    }
+    messageBox.classList.add('hidden');
+}
+
+function handlePrimaryAction() {
+    if (isRegisterMode) {
+        handleRegistration();
+    } else {
+        handleSignIn();
+    }
+}
+
+async function handleSignIn() {
+    const loginId = document.getElementById('login-username').value.trim();
+    const password = document.getElementById('login-password').value.trim();
+
+    if (!loginId || !password) {
+        showMessage('Please enter both Login ID (Phone Number) and password.', 'bg-red-500 text-white');
+        return;
+    }
+
+    primaryBtn.disabled = true;
+    primaryBtn.textContent = 'Signing In...';
+    showMessage('Attempting to connect to server...', 'bg-yellow-600 text-white');
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: loginId, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showMessage(`Welcome back, ${data.firstName}! Redirecting...`, 'bg-green-500 text-white');
+            localStorage.setItem('concertNowFirstName', data.firstName);
+            localStorage.setItem('concertNowUserId', data.userId);
+
+            setTimeout(() => {
+                window.location.href = '/index';
+            }, 1000);
+        } else {
+            showMessage(`Login Failed: ${data.message}`, 'bg-red-500 text-white');
+        }
+    } catch (error) {
+        console.error('Network or Server Error:', error);
+        showMessage('Network Error: Could not connect to Flask server. Is the backend running?', 'bg-red-500 text-white');
+    } finally {
+        primaryBtn.disabled = false;
+        primaryBtn.textContent = 'Sign In';
+    }
+}
+
+async function handleRegistration() {
+    const loginId = document.getElementById('reg-username').value.trim();
+    const password = document.getElementById('reg-password').value.trim();
+    const firstName = document.getElementById('reg-firstname').value.trim();
+    const lastName = document.getElementById('reg-lastname').value.trim();
+
+    if (!loginId || !password || !firstName || !lastName) {
+        showMessage('Please fill in all required fields.', 'bg-red-500 text-white');
+        return;
+    }
+
+    primaryBtn.disabled = true;
+    primaryBtn.textContent = 'Registering...';
+    showMessage('Attempting to create account...', 'bg-yellow-600 text-white');
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                username: loginId,
+                password: password,
+                firstName: firstName,
+                lastName: lastName
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showMessage(
+                `Success! Welcome, ${data.firstName}. Your User ID is ${data.userId}. Please sign in now.`,
+                'bg-green-500 text-white'
+            );
+            toggleForm();
+            document.getElementById('login-username').value = loginId;
+        } else {
+            showMessage(`Registration Failed: ${data.message}`, 'bg-red-500 text-white');
+        }
+    } catch (error) {
+        console.error('Network or Server Error during registration:', error);
+        showMessage('Network Error: Could not connect to Flask server. Is the backend running?', 'bg-red-500 text-white');
+    } finally {
+        primaryBtn.disabled = false;
+        primaryBtn.textContent = 'Sign In';
+    }
+}
+</script>
+</body>
+</html>

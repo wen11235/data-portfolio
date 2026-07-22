@@ -4,6 +4,10 @@
 
 [📄 Full report](report.html) · [💻 Code](code/) · [📑 Project Report PDF](Project_Report.pdf) · [📑 Indexing Analysis PDF](Stage3_Indexing_Analysis.pdf)
 
+<!-- TODO once deployed: · [🌐 Live Demo](https://your-app.onrender.com) -->
+
+**Live demo**: not yet deployed — see [DEPLOY.md](DEPLOY.md) for the ready-to-go deployment guide (db4free.net + Render.com, both free, ~15 min).
+
 ## Team & my role
 
 Built with **Yi-Hsin Chang** and **Zoe Hanson** as "Team DataDucks" for CS411 (Database Systems, UIUC). Division of labor, from our submitted project report: Yi-Hsin led backend database implementation — writing SQL queries, designing stored procedures, and managing the Cloud SQL connection. **I concentrated on backend logic, API development, and integrating advanced database features (triggers and transaction-based stored procedures) into the Flask application.** Zoe built the full frontend — page structure, styling, and keeping the interface consistent with the database's enforced rules.

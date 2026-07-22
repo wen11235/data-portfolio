@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ConcertNOW | Build Itinerary</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+<!-- NAVBAR -->
+<nav class="bg-white shadow-md sticky top-0 z-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
+        <span class="text-2xl font-extrabold text-purple-600">ConcertNOW</span>
+        <div class="space-x-4">
+            <a href="/index" class="text-gray-500 hover:text-purple-600 px-3 py-2 text-sm font-medium">Home</a>
+            <a href="/itinerary/saved" class="text-gray-500 hover:text-purple-600 px-3 py-2 text-sm font-medium">Saved Trips</a>
+            <a href="/community" class="text-gray-500 hover:text-purple-600 px-3 py-2 text-sm font-medium">Community</a>
+            <button onclick="handleLogout()" class="text-gray-500 hover:text-red-500 px-3 py-2 rounded-md text-sm font-medium">Log Out</button>
+        </div>
+    </div>
+</nav>
+
+<!-- MAIN -->
+<main class="max-w-4xl mx-auto p-6 lg:px-12 lg:py-10">
+    <h1 class="text-4xl font-extrabold text-gray-900 mb-8">Build Your Itinerary</h1>
+
+    <div class="bg-white p-8 rounded-xl shadow-2xl border border-purple-100 mb-8">
+        <h2 class="text-2xl font-bold text-purple-700 mb-4 border-b pb-2">Your Trip Summary</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
+            <!-- Event Info -->
+            <div>
+                <p class="text-sm font-semibold text-gray-500">Concert / Event</p>
+                <p class="text-xl font-bold text-gray-800" id="concert-name-display">Loading...</p>
+                <p class="text-md text-gray-600" id="concert-datetime-display">Date &amp; Time</p>
+                <p class="text-sm text-gray-500" id="venue-display">Venue: Unknown</p>
+
+                <input type="hidden" id="event-id-input">
+                <input type="hidden" id="start-date-input">
+                <input type="hidden" id="start-time-input">
+            </div>
+
+            <!-- Hotel Info -->
+            <div>
+                <p class="text-sm font-semibold text-gray-500">Accommodation</p>
+                <p class="text-xl font-bold text-gray-800" id="hotel-name-display">No Hotel Selected</p>
+                <p class="text-md text-gray-600" id="hotel-details-display">
+                    Click "View Hotels Nearby" to select.
+                </p>
+                <input type="hidden" id="hotel-code-input">
+
+                <a id="view-hotels-btn"
+                   href="#"
+                   class="inline-block mt-3 py-2 px-4 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition">
+                    View Hotels Nearby
+                </a>
+            </div>
+        </div>
+
+        <div class="mt-8">
+            <label for="user-note" class="block text-lg font-semibold text-gray-700 mb-2">
+                Add Your Notes
+            </label>
+            <textarea id="user-note" rows="4"
+                      class="w-full p-3 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
+                      placeholder="E.g., Dinner reservation, transport plan, reminder for friends..."></textarea>
+        </div>
+
+        <div class="mt-6">
+            <p class="block text-lg font-semibold text-gray-700 mb-2">
+                Visibility
+            </p>
+            <p class="text-sm text-gray-500 mb-2">
+                Choose who can see this trip in the community.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-3">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="visibility" value="1" class="h-4 w-4 text-purple-600" checked>
+                    <span class="text-sm text-gray-700">
+                        <span class="font-semibold">Public</span> — show in Community.
+                    </span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="visibility" value="0" class="h-4 w-4 text-purple-600">
+                    <span class="text-sm text-gray-700">
+                        <span class="font-semibold">Private</span> — only visible to you.
+                    </span>
+                </label>
+            </div>
+        </div>
+
+        <div class="mt-8">
+            <button id="save-itinerary-btn"
+                    class="w-full py-3 px-4 bg-purple-600 text-white font-bold text-lg rounded-lg hover:bg-purple-700 transition duration-150 disabled:bg-gray-400">
+                Save Itinerary
+            </button>
+        </div>
+        <div id="message-container" class="mt-4 p-3 rounded-lg text-center hidden"></div>
+    </div>
+</main>
+
+<script>
+const API_BASE_URL = 'http://127.0.0.1:5000/api';
+
+let tripData = {
+    userId: localStorage.getItem('concertNowUserId'),
+    eventId: null,
+    hotelCode: null,
+    startDate: null,
+    startTime: null,
+    userNote: '',
+    visibility: 1
+};
+
+document.addEventListener('DOMContentLoaded', async () => {
+    if (!tripData.userId) {
+        window.location.href = '/';
+        return;
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const eventId = urlParams.get('event_id');
+    const hotelCode = urlParams.get('hotel_code');
+
+    if (!eventId) {
+        showMessage('Error: Missing Event ID. Redirecting to search...', 'bg-red-100 text-red-700');
+        setTimeout(() => window.location.href = '/index', 3000);
+        return;
+    }
+
+    tripData.eventId = eventId;
+    tripData.hotelCode = hotelCode && hotelCode !== 'null' ? hotelCode : null;
+
+    document.getElementById('event-id-input').value = eventId;
+    document.getElementById('hotel-code-input').value = tripData.hotelCode || '';
+
+    const hotelBtn = document.getElementById('view-hotels-btn');
+    hotelBtn.href = `/itinerary/hotel?event_id=${encodeURIComponent(eventId)}`;
+
+    await fetchTripDetails(eventId, tripData.hotelCode);
+
+    document.getElementById('save-itinerary-btn').addEventListener('click', saveTrip);
+
+    document.getElementById('user-note').addEventListener('input', (e) => {
+        tripData.userNote = e.target.value;
+    });
+    document.querySelectorAll('input[name="visibility"]').forEach((radio) => {
+        radio.addEventListener('change', (e) => {
+            tripData.visibility = Number(e.target.value);
+        });
+    });
+});
+
+function handleLogout() {
+    localStorage.removeItem('concertNowFirstName');
+    localStorage.removeItem('concertNowUserId');
+    window.location.href = '/';
+}
+
+function showMessage(msg, classes) {
+    const container = document.getElementById('message-container');
+    container.textContent = msg;
+    container.className = `mt-4 p-3 rounded-lg text-center ${classes}`;
+    container.classList.remove('hidden');
+}
+
+async function fetchTripDetails(eventId, hotelCode) {
+    try {
+        const resp = await fetch(`${API_BASE_URL}/events/${eventId}`);
+        if (!resp.ok) {
+            const errData = await resp.json().catch(() => ({}));
+            console.error('Event API error body:', errData);
+            throw new Error(`Failed to fetch event. Status ${resp.status}`);
+        }
+
+        const data = await resp.json();
+
+        const eventName = data.EventName;
+        const eventDate = data.EventDate || 'TBD';
+        const eventTime = data.EventTime || 'TBD';
+        const venue = `${data.VenueName}, ${data.City}, ${data.State}`;
+
+        tripData.startDate = eventDate;
+        tripData.startTime = eventTime;
+
+        document.getElementById('start-date-input').value = eventDate;
+        document.getElementById('start-time-input').value = eventTime;
+
+        document.getElementById('concert-name-display').textContent = eventName;
+        document.getElementById('concert-datetime-display').textContent = `${eventDate} @ ${eventTime}`;
+        document.getElementById('venue-display').textContent = `Venue: ${venue}`;
+
+        if (hotelCode) {
+            try {
+                const hResp = await fetch(`${API_BASE_URL}/hotel/${hotelCode}`);
+                if (hResp.ok) {
+                    const hotel = await hResp.json();
+                    document.getElementById('hotel-name-display').textContent =
+                        hotel.Name || `Selected Hotel #${hotelCode}`;
+                    const starText = hotel.StarRating != null
+                        ? `${hotel.StarRating} Star`
+                        : 'No rating info';
+                    document.getElementById('hotel-details-display').textContent =
+                        `${hotel.Address}, ${hotel.City} (${starText})`;
+                } else {
+                    document.getElementById('hotel-name-display').textContent =
+                        `Selected Hotel #${hotelCode}`;
+                    document.getElementById('hotel-details-display').textContent =
+                        'Reservation details to be added.';
+                }
+            } catch (e) {
+                console.error('Error fetching hotel info:', e);
+                document.getElementById('hotel-name-display').textContent =
+                    `Selected Hotel #${hotelCode}`;
+                document.getElementById('hotel-details-display').textContent =
+                    'Reservation details to be added.';
+            }
+        } else {
+            document.getElementById('hotel-name-display').textContent = 'No Hotel Selected';
+            document.getElementById('hotel-details-display').textContent =
+                'Click "View Hotels Nearby" to select.';
+        }
+    } catch (error) {
+        console.error('Error fetching trip details:', error);
+        showMessage('Error loading trip details. Please try again.', 'bg-red-100 text-red-700');
+
+        document.getElementById('concert-name-display').textContent = `Event #${eventId}`;
+        document.getElementById('concert-datetime-display').textContent = 'Date & Time unavailable';
+        document.getElementById('venue-display').textContent = 'Venue information unavailable';
+    }
+}
+
+async function saveTrip() {
+    const saveBtn = document.getElementById('save-itinerary-btn');
+
+    if (!tripData.userId || !tripData.eventId) {
+        showMessage('Missing user or event information.', 'bg-red-100 text-red-700');
+        return;
+    }
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+    showMessage('Submitting your trip plan...', 'bg-blue-100 text-blue-700');
+
+    try {
+        const payload = {
+            userId: tripData.userId,
+            eventId: tripData.eventId,
+            hotelCode: tripData.hotelCode || null,
+            note: tripData.userNote || null,
+            visibility: tripData.visibility
+        };
+
+        const response = await fetch(`${API_BASE_URL}/itinerary`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showMessage(
+                '✅ Success! Event added to your itinerary. Redirecting...',
+                'bg-green-100 text-green-700'
+            );
+            setTimeout(() => window.location.href = '/itinerary/saved', 1500);
+        } else if (response.status === 409) {
+            showMessage(
+                'ℹ️ This event is already in your itinerary. Redirecting to Saved Trips...',
+                'bg-yellow-100 text-yellow-700'
+            );
+            setTimeout(() => window.location.href = '/itinerary/saved', 1500);
+        } else {
+            showMessage(
+                `❌ Save Failed: ${data.message || 'Unknown error.'}`,
+                'bg-red-100 text-red-700'
+            );
+        }
+    } catch (error) {
+        console.error('Network or Server Error during save:', error);
+        showMessage('❌ Network Error: Could not connect to server.', 'bg-red-100 text-red-700');
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Itinerary';
+    }
+}
+</script>
+</body>
+</html>
