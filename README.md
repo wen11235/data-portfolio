@@ -6,17 +6,19 @@ Live site: `https://wen11235.github.io/<repo-name>/` (update once deployed).
 
 ## Projects
 
+Projects 1–4 are entirely the author's own work (coursework/team projects); projects 5–9 are built on public datasets as part of this portfolio exercise.
+
 | # | Project | Focus | Key Skills |
 |---|---------|-------|------------|
 | 1 | [Brain Tumor Segmentation (MRI)](projects/04-brain-tumor-segmentation/) | Deep Learning / Coursework | PyTorch, U-Net variants, evaluation methodology, model calibration |
-| 2 | [Retail Customer Analytics & Segmentation](projects/01-retail-customer-analytics/) | Data Analyst | SQL (DuckDB), RFM segmentation, cohort analysis, business storytelling |
-| 3 | [Customer Churn Prediction](projects/02-churn-prediction/) | Data Scientist | ML pipeline, model comparison, SHAP explainability |
-| 4 | [Data Job Market Skill Trends](projects/03-data-job-market-trends/) | Data Analyst / NLP | Text mining, skill-demand analysis, market research |
-| 5 | [Retail Sales Interactive Dashboard](projects/05-retail-dashboard/) | Data Analyst / BI | Plotly, interactive dashboards, client-side filtering |
-| 6 | [A/B Test Analysis: Cookie Cats](projects/06-ab-testing/) | Data Scientist / Experimentation | Hypothesis testing, bootstrap resampling, statistical vs. practical significance |
-| 7 | [Detecting Fake Job Postings](projects/07-fake-job-detection/) | Data Scientist / NLP / Coursework | Text mining, TF-IDF, SMOTE, CNN/BiLSTM/BERT, model interpretability |
-| 8 | [Scientific Data Visualization: Galaxy Simulation](projects/08-galaxy-sciviz/) | Data Visualization / Coursework | yt, scientific computing, unit-aware data handling, data quality investigation |
-| 9 | [ConcertNOW: Concert & Trip Planning App](projects/09-concert-trip-planner/) | Full-Stack / Team Project / Coursework | Flask REST API, MySQL triggers & stored procedures, transactions, schema normalization, query optimization |
+| 2 | [Detecting Fake Job Postings](projects/07-fake-job-detection/) | Data Scientist / NLP / Coursework | Text mining, TF-IDF, SMOTE, CNN/BiLSTM/BERT, model interpretability |
+| 3 | [Scientific Data Visualization: Galaxy Simulation](projects/08-galaxy-sciviz/) | Data Visualization / Coursework | yt, scientific computing, unit-aware data handling, data quality investigation |
+| 4 | [ConcertNOW: Concert & Trip Planning App](projects/09-concert-trip-planner/) | Full-Stack / Team Project / Coursework | Flask REST API, MySQL triggers & stored procedures, transactions, schema normalization, query optimization |
+| 5 | [Retail Customer Analytics & Segmentation](projects/01-retail-customer-analytics/) | Data Analyst | SQL (DuckDB), RFM segmentation, cohort analysis, business storytelling |
+| 6 | [Customer Churn Prediction](projects/02-churn-prediction/) | Data Scientist | ML pipeline, model comparison, SHAP explainability |
+| 7 | [Data Job Market Skill Trends](projects/03-data-job-market-trends/) | Data Analyst / NLP | Text mining, skill-demand analysis, market research |
+| 8 | [Retail Sales Interactive Dashboard](projects/05-retail-dashboard/) | Data Analyst / BI | Plotly, interactive dashboards, client-side filtering |
+| 9 | [A/B Test Analysis: Cookie Cats](projects/06-ab-testing/) | Data Scientist / Experimentation | Hypothesis testing, bootstrap resampling, statistical vs. practical significance |
 
 ## Running locally
 
