@@ -1,11 +1,12 @@
 -- ============================================================
--- ConcertNOW — full setup script for a fresh db4free.net database
--- Run this against the database db4free.net creates for you at signup
--- (no CREATE DATABASE here — db4free already provisions one per account).
+-- ConcertNOW — full setup script for a fresh freesqldatabase.com database
+-- Run this against the database freesqldatabase.com creates for you at
+-- signup (no CREATE DATABASE here — it's already provisioned per account).
 --
 -- Recommended: run via a real MySQL client, not phpMyAdmin's web SQL box —
 -- the DELIMITER blocks for triggers/procedures are more reliable there.
---   mysql -h db4free.net -P 3306 -u YOUR_USER -p YOUR_DB_NAME < setup.sql
+--   mysql -h YOUR_HOST -P 3306 -u YOUR_USER -p YOUR_DB_NAME < setup.sql
+-- (host/user/db name shown on your freesqldatabase.com account dashboard)
 -- ============================================================
 
 -- ---------- 1. Schema ----------

@@ -6,7 +6,7 @@
 
 <!-- TODO once deployed: · [🌐 Live Demo](https://your-app.onrender.com) -->
 
-**Live demo**: not yet deployed — see [DEPLOY.md](DEPLOY.md) for the ready-to-go deployment guide (db4free.net + Render.com, both free, ~15 min).
+**Live demo**: not yet deployed — see [DEPLOY.md](DEPLOY.md) for the ready-to-go deployment guide (freesqldatabase.com + Render.com, both free, ~15 min).
 
 ## Team & my role
 

@@ -4,25 +4,37 @@ Everything technical is ready in `deploy/` — schema, seed data, production
 config. What's left needs your own accounts (I can't sign up for services on
 your behalf). Should take about 15 minutes total.
 
-## 1. Database — db4free.net (free MySQL, no card, no expiry)
+## 1. Database — freesqldatabase.com (free MySQL)
 
-1. Go to **https://www.db4free.net/signup.php** and register. You'll pick a
-   database name and password during signup — write them down.
-2. Wait for the confirmation email (usually a couple minutes) and click the
-   activation link. Your database isn't usable until you activate it.
+> **Note:** originally this guide pointed at db4free.net. That domain lapsed
+> and was re-registered by an unrelated party sometime before mid-2026 — it
+> now serves unrelated content and should not be used. Verified before
+> switching: freesqldatabase.com's domain has been registered since 2009,
+> and its content has been consistent across Wayback Machine snapshots from
+> 2019 through 2026 (same service, not recently hijacked).
+
+1. ✅ You've already registered at **https://www.freesqldatabase.com/**.
+2. Log in and find your database's connection details on your account
+   dashboard — it'll show something like:
+   - **Host**: e.g. `sql#.freesqldatabase.com` (a specific numbered host — copy exactly what's shown, don't guess it)
+   - **Port**: usually `3306`
+   - **Database name**: auto-generated, e.g. `sql1234567`
+   - **Username**: usually the same as the database name
+   - **Password**: what you set at signup
 3. Load the schema, triggers, stored procedures, and seed data — from your
-   terminal, from this `deploy/` folder:
+   terminal, from this `deploy/` folder (replace the placeholders with your
+   actual values from step 2):
    ```bash
-   mysql -h db4free.net -P 3306 -u YOUR_DB4FREE_USERNAME -p YOUR_DB4FREE_DBNAME < setup.sql
+   mysql -h YOUR_HOST -P 3306 -u YOUR_USERNAME -p YOUR_DATABASE_NAME < setup.sql
    ```
    (It'll prompt for the password you set at signup.) If you'd rather not
-   use a terminal, db4free's phpMyAdmin also works, but run the trigger and
+   use a terminal, their phpMyAdmin link also works, but run the trigger and
    stored procedure sections separately from the table-creation section —
    phpMyAdmin's web SQL box is unreliable with the `DELIMITER $$` blocks
    those need.
 4. Verify it worked:
    ```bash
-   mysql -h db4free.net -P 3306 -u YOUR_DB4FREE_USERNAME -p YOUR_DB4FREE_DBNAME -e "SHOW TABLES; SELECT * FROM VENUE;"
+   mysql -h YOUR_HOST -P 3306 -u YOUR_USERNAME -p YOUR_DATABASE_NAME -e "SHOW TABLES; SELECT * FROM VENUE;"
    ```
    You should see 7 tables and 4 seeded venues.
 
@@ -45,14 +57,15 @@ git push -u origin main
    - **Build Command**: `pip install -r requirements.txt`
    - **Start Command**: `gunicorn app:app`
    - **Instance Type**: Free
-4. Under **Environment Variables**, add these 5 (values from step 1):
+4. Under **Environment Variables**, add these 5 (values from step 1 — your
+   actual freesqldatabase.com host, not a placeholder):
    | Key | Value |
    |---|---|
-   | `DB_HOST` | `db4free.net` |
+   | `DB_HOST` | your freesqldatabase.com host (e.g. `sql#.freesqldatabase.com`) |
    | `DB_PORT` | `3306` |
-   | `DB_DATABASE` | your db4free database name |
-   | `DB_USER` | your db4free username |
-   | `DB_PASSWORD` | your db4free password |
+   | `DB_DATABASE` | your freesqldatabase.com database name |
+   | `DB_USER` | your freesqldatabase.com username |
+   | `DB_PASSWORD` | your freesqldatabase.com password |
 5. **Create Web Service**. First deploy takes a few minutes — watch the
    build log for errors.
 6. Once live, Render gives you a URL like
@@ -66,9 +79,12 @@ git push -u origin main
   request after that takes ~30-60 seconds to cold-start while it spins back
   up. If a recruiter clicks the link and it looks slow/broken at first,
   that's why — it isn't actually broken.
-- **db4free.net makes no uptime guarantees** — it's built for exactly this
-  use case (demos, learning, testing), not production traffic. Fine for a
-  portfolio link, not something to rely on for anything real.
+- **freesqldatabase.com makes no uptime guarantees** — it's built for exactly
+  this use case (demos, learning, testing), not production traffic. Fine for
+  a portfolio link, not something to rely on for anything real. If it ever
+  becomes unreliable or the domain changes hands again, ask me to switch the
+  demo to a self-contained SQLite version instead (no third-party DB
+  dependency at all) — that's a known fallback, not a from-scratch redo.
 
 ## Once it's live
 
