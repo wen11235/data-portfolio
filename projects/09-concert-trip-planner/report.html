@@ -70,6 +70,27 @@
   </section>
 
   <section>
+    <h2>Deploying it live surfaced a real constraint</h2>
+    <div class="callout">
+      The free MySQL host used for the public deployment grants
+      <code>CREATE ROUTINE</code>/<code>ALTER ROUTINE</code> (confirmed via
+      <code>SHOW GRANTS FOR CURRENT_USER()</code>) but not
+      <code>TRIGGER</code> — a common restriction on shared free-tier MySQL
+      hosting, since triggers fire implicitly on any write and are harder
+      for a host to sandbox than an explicitly-called stored procedure. So
+      on the live deployment: <strong>the 2 stored procedures run as real
+      MySQL routines</strong>, but the 2 triggers can't be created there —
+      the equivalent visibility rule is enforced in <code>deploy/app.py</code>
+      instead (<code>compute_enforced_visibility()</code>), same logic,
+      application layer instead of database layer, only for this specific
+      hosting constraint. The trigger SQL itself is unchanged and verified
+      working against any host that does grant the privilege (tested
+      locally). <code>deploy/setup_free_tier.sql</code> vs
+      <code>deploy/setup.sql</code> documents the split.
+    </div>
+  </section>
+
+  <section>
     <h2>What it does</h2>
     <figure>
       <img src="assets/login.png" alt="ConcertNOW login page">

@@ -16,6 +16,10 @@ Built with **Yi-Hsin Chang** and **Zoe Hanson** as "Team DataDucks" for CS411 (D
 
 The production app connects to a Google Cloud SQL instance through a local Cloud SQL Proxy tunnel — not reachable from outside our own machines. The screenshots below are from a **locally reconstructed instance**: the exact schema and SQL programs from `code/schema.sql` and `code/advanced_database_programs.sql`, running against a local MySQL server seeded with a small set of realistic sample data, with the real `app.py` pointed at it unmodified. Same code, same schema, same triggers and stored procedures — just a different (fake) dataset behind it, because the real one isn't reachable from here.
 
+## Live deployment: a real infrastructure constraint
+
+Deploying a genuinely public version (see [DEPLOY.md](DEPLOY.md)) surfaced something the local demo didn't: the free MySQL host grants `CREATE ROUTINE`/`ALTER ROUTINE` (confirmed via `SHOW GRANTS FOR CURRENT_USER()`) but not `TRIGGER` — a common restriction on shared free-tier MySQL hosting, since triggers fire implicitly on any write and are harder for a host to sandbox than an explicitly-called stored procedure. So on the live deployment: **the 2 stored procedures run as real MySQL routines**, but the 2 triggers can't be created there, and the equivalent visibility rule is enforced in `deploy/app.py` (`compute_enforced_visibility()`) instead — same logic, application layer instead of database layer, only for this specific hosting constraint. The trigger SQL itself is unchanged and works against any host that does grant the privilege (verified locally). `deploy/setup_free_tier.sql` vs `deploy/setup.sql` documents the split.
+
 ## What it does
 
 - **Search** concerts by city and date (sourced from a static Ticketmaster data pull, after the team dropped live API integration — see below)

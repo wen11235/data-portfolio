@@ -1,15 +1,15 @@
 -- ============================================================
--- ConcertNOW — full setup script (schema + triggers + stored procedures +
--- seed data), for any MySQL host that grants the TRIGGER privilege — e.g.
--- local MySQL. Many free shared-hosting MySQL accounts (including the one
--- this project actually deployed against) do NOT grant TRIGGER by default;
--- if `SHOW GRANTS FOR CURRENT_USER()` confirms that's the case for your
--- host, use setup_free_tier.sql instead (same thing minus the trigger
--- section — the equivalent rule is enforced in deploy/app.py instead).
+-- ConcertNOW — setup script for freesqldatabase.com (and other free-tier
+-- hosts that grant CREATE ROUTINE but not TRIGGER — check with
+-- SHOW GRANTS FOR CURRENT_USER() first). Schema + stored procedures +
+-- seed data; triggers are intentionally omitted, see the note below.
+--
+-- If your host DOES grant TRIGGER, use setup.sql (the full version)
+-- instead — it's strictly more complete.
 --
 -- Recommended: run via a real MySQL client, not phpMyAdmin's web SQL box —
--- the DELIMITER blocks for triggers/procedures are more reliable there.
---   mysql -h YOUR_HOST -P 3306 -u YOUR_USER -p YOUR_DB_NAME < setup.sql
+-- the DELIMITER blocks for stored procedures are more reliable there.
+--   mysql -h YOUR_HOST -P 3306 -u YOUR_USER -p YOUR_DB_NAME < setup_free_tier.sql
 -- (host/user/db name shown on your freesqldatabase.com account dashboard)
 -- ============================================================
 
@@ -87,35 +87,16 @@ CREATE TABLE SAVE (
 );
 
 -- ---------- 2. Triggers ----------
-
-DROP TRIGGER IF EXISTS trg_trip_visibility_before_insert;
-DROP TRIGGER IF EXISTS trg_trip_visibility_before_update;
-
-DELIMITER $$
-
-CREATE TRIGGER trg_trip_visibility_before_insert
-BEFORE INSERT ON TRIP
-FOR EACH ROW
-BEGIN
-    IF NEW.HotelCode IS NULL
-       OR NEW.UserNote IS NULL
-       OR CHAR_LENGTH(NEW.UserNote) < 20 THEN
-        SET NEW.Visibility = 0;
-    END IF;
-END$$
-
-CREATE TRIGGER trg_trip_visibility_before_update
-BEFORE UPDATE ON TRIP
-FOR EACH ROW
-BEGIN
-    IF NEW.HotelCode IS NULL
-       OR NEW.UserNote IS NULL
-       OR CHAR_LENGTH(NEW.UserNote) < 20 THEN
-        SET NEW.Visibility = 0;
-    END IF;
-END$$
-
-DELIMITER ;
+-- SKIPPED on this host: the free-tier account does not have the MySQL
+-- TRIGGER privilege (confirmed via SHOW GRANTS FOR CURRENT_USER() —
+-- CREATE ROUTINE/ALTER ROUTINE are granted, TRIGGER is not). Common
+-- restriction on shared free MySQL hosting. The same rule (force a trip
+-- Private if it's missing a hotel or has a note under 20 characters) is
+-- enforced at the application layer instead, in deploy/app.py's
+-- compute_enforced_visibility() — see that function's docstring. The real
+-- trigger SQL is unchanged and verified working in
+-- code/advanced_database_programs.sql and setup.sql (the full version, for
+-- hosts that do allow TRIGGER — e.g. local MySQL).
 
 -- ---------- 3. Stored procedures ----------
 

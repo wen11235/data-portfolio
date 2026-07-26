@@ -76,6 +76,24 @@ def generate_next_trip_id(conn):
 
 
 
+def compute_enforced_visibility(hotel_code, user_note, requested_visibility):
+    """Mirrors trg_trip_visibility_before_insert / trg_trip_visibility_before_update
+    (see code/advanced_database_programs.sql): a trip is forced Private if it's
+    missing a hotel or has a note under 20 characters.
+
+    This deployment's database account doesn't have the MySQL TRIGGER privilege
+    (common on free shared-hosting MySQL — confirmed via SHOW GRANTS), so the
+    real triggers can't be created here. The stored procedures below this line
+    *are* real, live MySQL routines (CREATE ROUTINE is granted) — only this one
+    rule is re-implemented at the application layer, and only for this specific
+    deployment. The actual trigger code is unchanged in the repo and verified
+    working against a real local MySQL instance.
+    """
+    if hotel_code is None or not user_note or len(user_note) < 20:
+        return 0
+    return requested_visibility
+
+
 @app.route("/")
 def home_page():
     # templates/auth/login.html
@@ -348,6 +366,8 @@ def add_itinerary_item():
             cursor.close()
             return jsonify({"message": "Failed to generate TripId."}), 500
 
+        visibility = compute_enforced_visibility(hotel_code, user_note, visibility)
+
         cursor = conn.cursor()
         cursor.execute(
             """
@@ -521,16 +541,18 @@ def update_trip_visibility(trip_id):
         cursor = conn.cursor()
 
 
-        cursor.execute("SELECT 1 FROM TRIP WHERE TripId = %s", (trip_id,))
-        exists = cursor.fetchone()
-        if not exists:
+        cursor.execute("SELECT HotelCode, UserNote FROM TRIP WHERE TripId = %s", (trip_id,))
+        row = cursor.fetchone()
+        if not row:
             cursor.close()
             return jsonify({"message": f"Trip {trip_id} not found."}), 404
-
+        hotel_code, user_note = row
+        requested_visibility = visibility
+        enforced_visibility = compute_enforced_visibility(hotel_code, user_note, visibility)
 
         cursor.execute(
             "UPDATE TRIP SET Visibility = %s WHERE TripId = %s",
-            (visibility, trip_id)
+            (enforced_visibility, trip_id)
         )
         conn.commit()
         cursor.close()
@@ -545,7 +567,7 @@ def update_trip_visibility(trip_id):
 
         msg = "Visibility updated."
 
-        if visibility == 1 and actual_visibility == 0:
+        if requested_visibility == 1 and actual_visibility == 0:
             msg = ("Visibility attempted set to Public, "
                    "but the rule forced it to Private (missing hotel or short note).")
 
@@ -573,13 +595,21 @@ def update_trip(trip_id):
 
     try:
         cursor = conn.cursor()
-        cursor.execute("UPDATE TRIP SET UserNote = %s WHERE TripId = %s", (user_note, trip_id))
+        cursor.execute("SELECT HotelCode, Visibility FROM TRIP WHERE TripId = %s", (trip_id,))
+        row = cursor.fetchone()
+        if row is None:
+            cursor.close()
+            return jsonify({"message": f"Trip {trip_id} not found."}), 404
+        hotel_code, current_visibility = row
+        new_visibility = compute_enforced_visibility(hotel_code, user_note, current_visibility)
+
+        cursor.execute(
+            "UPDATE TRIP SET UserNote = %s, Visibility = %s WHERE TripId = %s",
+            (user_note, new_visibility, trip_id),
+        )
         conn.commit()
 
-        if cursor.rowcount == 0:
-            return jsonify({"message": f"Trip {trip_id} not found."}), 404
-
-        return jsonify({"message": f"Trip {trip_id} updated."}), 200
+        return jsonify({"message": f"Trip {trip_id} updated.", "visibility": new_visibility}), 200
     except Exception as e:
         conn.rollback()
         print(f"Error updating trip {trip_id}: {e}")
