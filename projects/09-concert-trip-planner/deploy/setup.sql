@@ -13,6 +13,20 @@
 -- (host/user/db name shown on your freesqldatabase.com account dashboard)
 -- ============================================================
 
+-- ---------- 0. Clean slate ----------
+-- Safe to re-run: drops everything from any previous attempt first. FK
+-- checks disabled just for the drop batch so table order doesn't matter.
+
+SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS SAVE;
+DROP TABLE IF EXISTS TRIP;
+DROP TABLE IF EXISTS REVIEW;
+DROP TABLE IF EXISTS EVENT;
+DROP TABLE IF EXISTS HOTEL;
+DROP TABLE IF EXISTS VENUE;
+DROP TABLE IF EXISTS USER;
+SET FOREIGN_KEY_CHECKS = 1;
+
 -- ---------- 1. Schema ----------
 
 CREATE TABLE USER (
