@@ -107,6 +107,42 @@
   </section>
 
   <section>
+    <h2>Bonus: designing this test from scratch (power analysis)</h2>
+    <p>
+      Everything above analyzes a test that had already been run. A natural
+      follow-up question: before collecting any data, how would you have
+      decided how many players to randomize? A power analysis, using the
+      control group's observed rate as the planning baseline, answers that —
+      solve for the sample size needed to reliably detect a given Minimum
+      Detectable Effect (MDE) at a chosen significance level and power.
+    </p>
+    <table>
+      <thead><tr><th>MDE</th><th>Required n / group (80% power, α=0.05)</th></tr></thead>
+      <tbody>
+        <tr><td>0.30 pp</td><td>267,020</td></tr>
+        <tr><td>0.50 pp</td><td>95,733</td></tr>
+        <tr><td>0.82 pp (the effect actually found)</td><td class="badge-good">35,357</td></tr>
+        <tr><td>1.00 pp</td><td>23,684</td></tr>
+        <tr><td>1.50 pp</td><td>10,414</td></tr>
+      </tbody>
+    </table>
+    <figure>
+      <img src="assets/power_analysis.png" alt="Required sample size per group vs minimum detectable effect, with the actual sample size and observed effect marked">
+      <figcaption>Wherever the actual-n line sits above the curve, that sample size could reliably detect that effect. The lines cross around MDE ≈ 0.73pp.</figcaption>
+    </figure>
+    <div class="callout">
+      The actual test (~44,700 players/group) turns out to have been
+      adequately powered for the 0.82pp effect it found — <strong>88.3%
+      achieved power</strong> against an 80% target, with the required n
+      (35,357) comfortably under what was collected. But the margin isn't
+      huge: the smallest effect this sample size could reliably catch at 80%
+      power is ~0.73pp. A follow-up test aimed at a smaller effect (say,
+      0.5pp) would need roughly <strong>double</strong> the sample size — the
+      kind of check worth doing <em>before</em> a test launches, not after.
+    </div>
+  </section>
+
+  <section>
     <h2>Recommendation</h2>
     <p>
       <strong>Do not move the gate to level 40.</strong> 7-day retention — the
@@ -124,6 +160,7 @@
     <div class="tags">
       <span class="tag">Hypothesis Testing</span>
       <span class="tag">Bootstrap Resampling</span>
+      <span class="tag">Power Analysis</span>
       <span class="tag">Experiment Design</span>
       <span class="tag">Statistical Significance</span>
     </div>

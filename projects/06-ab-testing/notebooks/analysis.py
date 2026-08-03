@@ -236,3 +236,83 @@ Recommendation: keep gate at level 30.
   7-day retention p-value: {res_r7['p_value']:.4f}
   7-day effect: {effect_pp:+.2f} pp ({relative_effect:+.1%} relative)
 """)
+
+# %% [markdown]
+# ## 9. Bonus: designing this test from scratch (power analysis)
+#
+# Everything above analyzes a test that had already been run. A natural
+# follow-up question: before collecting any data, how would you have decided
+# how many players to randomize? That's a **power analysis** — using the
+# control group's baseline rate as the planning assumption, solve for the
+# sample size needed to reliably detect a chosen Minimum Detectable Effect
+# (MDE) at a given significance level and power.
+
+# %%
+from statsmodels.stats.power import NormalIndPower
+from statsmodels.stats.proportion import proportion_effectsize
+
+power_analysis = NormalIndPower()
+baseline_p = res_r7["p_a"]  # gate_30 (control) 7-day retention — the planning baseline
+alpha, target_power = 0.05, 0.80
+
+
+def required_n_per_group(mde_pp):
+    effect_size = abs(proportion_effectsize(baseline_p, baseline_p - mde_pp / 100))
+    return power_analysis.solve_power(effect_size=effect_size, alpha=alpha, power=target_power, ratio=1.0, alternative="two-sided")
+
+
+mdes_pp = np.array([0.3, 0.5, 0.82, 1.0, 1.5, 2.0])
+for mde in mdes_pp:
+    n = required_n_per_group(mde)
+    print(f"MDE = {mde:.2f}pp  ->  required n/group = {n:,.0f}  (total {2*n:,.0f})")
+
+# %% [markdown]
+# The actual test randomized ~44,700–45,500 players per group. Was that
+# enough? Two checks: (1) is that above the required n for the effect the
+# test actually found, and (2) what power did the test actually have to
+# detect that effect.
+
+# %%
+actual_n_per_group = min(res_r7["n_a"], res_r7["n_b"])
+observed_effect_pp = abs(res_r7["p_a"] - res_r7["p_b"]) * 100
+observed_effect_size = abs(proportion_effectsize(baseline_p, baseline_p - observed_effect_pp / 100))
+achieved_power = power_analysis.solve_power(effect_size=observed_effect_size, nobs1=actual_n_per_group, ratio=1.0, alpha=alpha, power=None, alternative="two-sided")
+
+print(f"Actual n/group: {actual_n_per_group:,}")
+print(f"Observed 7-day effect: {observed_effect_pp:.2f}pp")
+print(f"Required n/group for this effect at {target_power:.0%} power: {required_n_per_group(observed_effect_pp):,.0f}")
+print(f"Achieved power at the actual sample size: {achieved_power:.1%}")
+
+# %% [markdown]
+# The test was adequately powered for the effect it actually found — required
+# sample size for a 0.82pp effect is comfortably under the ~44,700 players per
+# group actually collected, giving ~89% achieved power against an 80% target.
+# It would **not** have been well-powered to reliably catch a smaller effect —
+# a 0.5pp MDE needs roughly double the sample size actually collected. Worth
+# knowing before planning a follow-up test with a tighter MDE.
+
+# %%
+mde_range = np.linspace(0.1, 2.0, 60)
+required_n_curve = np.array([required_n_per_group(m) for m in mde_range])
+
+fig, ax = plt.subplots(figsize=(8, 4.5))
+ax.plot(mde_range, required_n_curve, color=BLUE, linewidth=2, label="Required n/group (80% power)")
+ax.axhline(actual_n_per_group, color=RED, linestyle="--", linewidth=1.5, label=f"Actual n/group ({actual_n_per_group:,})")
+ax.axvline(observed_effect_pp, color=AQUA, linestyle="--", linewidth=1.5, label=f"Observed effect ({observed_effect_pp:.2f}pp)")
+ax.set_yscale("log")
+ax.set_xlabel("Minimum detectable effect (percentage points)")
+ax.set_ylabel("Required sample size per group (log scale)")
+ax.set_title("Sample Size Needed to Detect a Given Effect\n(80% power, α=0.05, baseline 7-day retention ≈19.0%)", fontsize=11, fontweight="bold")
+ax.legend(fontsize=8)
+plt.tight_layout()
+plt.savefig(f"{CHART_DIR}/power_analysis.png", dpi=150)
+plt.show()
+
+# %% [markdown]
+# Reading the chart: wherever the actual-n line sits above the curve, that
+# sample size had enough players to reliably detect that effect size;
+# wherever it sits below, it didn't. The curve crosses the actual-n line
+# around an MDE of ~0.73pp — the smallest effect this sample size could
+# reliably catch at 80% power — comfortably below the 0.82pp effect the test
+# actually found, but not with much room to spare. A next iteration of this
+# test aimed at a smaller effect would need a meaningfully larger sample.

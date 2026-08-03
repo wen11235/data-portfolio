@@ -19,6 +19,7 @@ Cookie Cats places a gate that pauses players until they wait or pay. Product hy
 3. **Two-proportion z-tests** on 1-day and 7-day retention.
 4. **Bootstrap confidence intervals** (5,000 resamples) on the retention difference, for an effect-size view beyond a single p-value.
 5. **Practical significance check** — translate the percentage-point effect into an absolute player count at scale.
+6. **Power analysis** (retrospective) — using the control group's rate as the planning baseline, solve for the sample size needed to detect various Minimum Detectable Effects, then check whether the actual sample size was adequately powered for the effect it found.
 
 ## Results
 
@@ -39,6 +40,20 @@ The group split itself (49.6% / 50.4%) is technically statistically distinguisha
 
 **Do not move the gate to level 40.** 7-day retention — the more reliable of the two retention metrics — is significantly worse with the later gate, consistently across resampling, with no engagement upside to offset it. Whatever intuition motivated "move the gate later," this test doesn't support it — a good reminder that A/B tests exist precisely to catch cases where an intuitively appealing change doesn't hold up.
 
+## Bonus: designing this test from scratch (power analysis)
+
+Everything above analyzes a test that had already been run. The natural follow-up: before collecting any data, how would you have decided how many players to randomize? Using the control group's observed rate as the planning baseline (`statsmodels.stats.power.NormalIndPower`), required sample size per group at 80% power / α=0.05:
+
+| MDE | Required n/group |
+|---|---|
+| 0.30 pp | 267,020 |
+| 0.50 pp | 95,733 |
+| **0.82 pp (the effect actually found)** | **35,357** |
+| 1.00 pp | 23,684 |
+| 1.50 pp | 10,414 |
+
+The actual test (~44,700 players/group) was adequately powered for the 0.82pp effect it found — 88.3% achieved power against an 80% target — but not by a huge margin: the smallest effect this sample size could reliably catch at 80% power is ~0.73pp. A follow-up test targeting a smaller effect (e.g. 0.5pp) would need roughly double the sample size actually collected. Worth checking *before* a test launches, not after.
+
 ## Skills demonstrated
 
-Hypothesis testing (two-proportion z-test), bootstrap resampling, randomization/sanity checks, statistical vs. practical significance, experiment-driven product recommendation.
+Hypothesis testing (two-proportion z-test), bootstrap resampling, randomization/sanity checks, statistical vs. practical significance, power analysis / sample size planning, experiment-driven product recommendation.
