@@ -44,11 +44,7 @@ your behalf). Should take about 15 minutes total.
 
 ## 2. Push this repo to GitHub
 
-If you haven't already:
-```bash
-git remote add origin https://github.com/wen11235/<your-repo-name>.git
-git push -u origin main
-```
+✅ Done — this repo is pushed to [github.com/wen11235/data-portfolio](https://github.com/wen11235/data-portfolio) and GitHub Pages is live at [wen11235.github.io/data-portfolio](https://wen11235.github.io/data-portfolio/).
 
 ## 3. Hosting — Render.com (free web service)
 
