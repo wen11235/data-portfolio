@@ -569,3 +569,8 @@ code {
   font-size: 0.86em;
   font-family: var(--mono);
 }
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 45%, transparent);
+  color: var(--text);
+}
