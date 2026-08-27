@@ -12,6 +12,8 @@ projects/09-concert-trip-planner/deploy/concertnow.db
 # Raw data dumps over ~20MB are noted with a source link in each project's data/README.md
 # instead of being committed, to keep the repo lightweight.
 projects/01-retail-customer-analytics/data/online_retail.csv
+projects/01-retail-customer-analytics/tableau/transactions.csv
+projects/01-retail-customer-analytics/tableau/customers.csv
 projects/03-data-job-market-trends/data/gsearch_jobs_2022.csv
 projects/07-fake-job-detection/data/fake_job_postings.csv
 projects/08-galaxy-sciviz/data/TipsyGalaxy.tar.gz
