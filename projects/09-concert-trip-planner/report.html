@@ -72,24 +72,42 @@
   </section>
 
   <section>
-    <h2>Deploying it live surfaced a real constraint</h2>
+    <h2>Deploying it live: two free MySQL hosts, two failures, then SQLite</h2>
     <div class="callout">
-      The free MySQL host used for the public deployment grants
-      <code>CREATE ROUTINE</code>/<code>ALTER ROUTINE</code> (confirmed via
-      <code>SHOW GRANTS FOR CURRENT_USER()</code>) but not
-      <code>TRIGGER</code> — a common restriction on shared free-tier MySQL
-      hosting, since triggers fire implicitly on any write and are harder
-      for a host to sandbox than an explicitly-called stored procedure. So
-      on the live deployment: <strong>the 2 stored procedures run as real
-      MySQL routines</strong>, but the 2 triggers can't be created there —
-      the equivalent visibility rule is enforced in <code>deploy/app.py</code>
-      instead (<code>compute_enforced_visibility()</code>), same logic,
-      application layer instead of database layer, only for this specific
-      hosting constraint. The trigger SQL itself is unchanged and verified
-      working against any host that does grant the privilege (tested
-      locally). <code>deploy/setup_free_tier.sql</code> vs
-      <code>deploy/setup.sql</code> documents the split.
+      Deploying a genuinely public version turned into its own small case
+      study in free-tier infrastructure reliability. First attempt
+      (db4free.net): the domain lapsed and was re-registered by an unrelated
+      party before any credentials were used there. Second attempt
+      (freesqldatabase.com), chosen after actually verifying its legitimacy
+      first: worked for about a week, then the account expired outright — a
+      documented policy of that service, not a bug on this end. That host's
+      free tier also didn't grant the <code>TRIGGER</code> privilege
+      (confirmed via <code>SHOW GRANTS FOR CURRENT_USER()</code>), so the
+      visibility rule was already running as application-layer Python before
+      the account expired entirely.
     </div>
+    <p>
+      Rather than chase a third free MySQL host with the same expiry risk,
+      the live deployment now runs on <strong>SQLite</strong> — a single
+      bundled file, created and seeded automatically on first run, no
+      signup or credentials at all. SQLite has neither triggers nor stored
+      procedures, so both the visibility rule and the
+      <code>sp_copy_public_trip_to_user</code> transaction are reimplemented
+      as plain Python in <code>deploy/app.py</code> — same logic, same
+      commit/rollback semantics, database layer traded for application
+      layer purely for this hosting constraint. Render's free tier also has
+      no persistent disk, so the database resets to seed data on every
+      restart — a real limitation, documented rather than hidden (see
+      <a href="DEPLOY.md">DEPLOY.md</a>).
+    </p>
+    <p>
+      None of this touches the actual project: <code>setup.sql</code> and
+      <code>code/advanced_database_programs.sql</code> are unchanged — the
+      real triggers and stored procedures, verified working against a real
+      local MySQL instance. <code>deploy/</code> is a separately adapted
+      copy for the realities of free public hosting; <code>code/</code>
+      stays the authentic, unmodified reference.
+    </p>
   </section>
 
   <section>

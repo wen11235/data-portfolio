@@ -1,7 +1,7 @@
 import os
+import sqlite3
 from datetime import date, datetime, time, timedelta
 
-import mysql.connector
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -11,33 +11,53 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
+# SQLite file, not a hosted MySQL service — see README.md's "Live deployment"
+# section for why. Render's free tier has no persistent disk, so this file
+# (and anything written to it) resets whenever the service restarts/spins
+# down after idling — init_db() below recreates it automatically. That's a
+# deliberate, documented trade-off for a zero-cost, zero-external-dependency
+# demo, not an oversight.
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "concertnow.db")
+SETUP_SQL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "setup_sqlite.sql")
+
+
+def init_db():
+    """Create and seed the SQLite file if it doesn't already exist."""
+    if os.path.exists(DB_PATH):
+        return
+    print(f">>> {DB_PATH} not found — initializing from {SETUP_SQL_PATH}")
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        with open(SETUP_SQL_PATH, "r") as f:
+            conn.executescript(f.read())
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _dict_row_factory(cursor, row):
+    return {col[0]: row[i] for i, col in enumerate(cursor.description)}
+
 
 def get_db_connection():
-    """Create and return a MySQL connection using .env settings."""
+    """Create and return a SQLite connection, rows returned as dicts."""
     try:
-        db_host = os.getenv("DB_HOST")
-        db_port = int(os.getenv("DB_PORT", 3307))
-        db_database = os.getenv("DB_DATABASE")
-        db_user = os.getenv("DB_USER")
-        db_password = os.getenv("DB_PASSWORD")
-
-        conn = mysql.connector.connect(
-            host=db_host,
-            port=db_port,
-            database=db_database,
-            user=db_user,
-            password=db_password,
-        )
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = _dict_row_factory
+        conn.execute("PRAGMA foreign_keys = ON")
         return conn
     except Exception as e:
-        print(f"!!! MySQL Database Connection FAILED !!! Error: {e}")
+        print(f"!!! SQLite Database Connection FAILED !!! Error: {e}")
         return None
+
+
+init_db()
 
 
 def generate_next_user_id(conn):
 
     try:
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
         cursor.execute("SELECT MAX(UserId) AS max_id FROM `USER` WHERE UserId LIKE 'USR%'")
         result = cursor.fetchone()
         cursor.close()
@@ -58,7 +78,7 @@ def generate_next_user_id(conn):
 def generate_next_trip_id(conn):
 
     try:
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
         cursor.execute("SELECT MAX(TripId) AS max_id FROM TRIP")
         result = cursor.fetchone()
         cursor.close()
@@ -81,17 +101,80 @@ def compute_enforced_visibility(hotel_code, user_note, requested_visibility):
     (see code/advanced_database_programs.sql): a trip is forced Private if it's
     missing a hotel or has a note under 20 characters.
 
-    This deployment's database account doesn't have the MySQL TRIGGER privilege
-    (common on free shared-hosting MySQL — confirmed via SHOW GRANTS), so the
-    real triggers can't be created here. The stored procedures below this line
-    *are* real, live MySQL routines (CREATE ROUTINE is granted) — only this one
-    rule is re-implemented at the application layer, and only for this specific
-    deployment. The actual trigger code is unchanged in the repo and verified
-    working against a real local MySQL instance.
+    This deployment runs on SQLite (see DB_PATH above), which has no trigger
+    *or* stored procedure support at all — so both are reimplemented at the
+    application layer here: this function for the trigger logic, and
+    copy_public_trip_to_user() below for the sp_copy_public_trip_to_user
+    stored procedure. The original trigger/procedure SQL is unchanged in the
+    repo and verified working against a real local MySQL instance (see
+    setup.sql and code/advanced_database_programs.sql).
     """
     if hotel_code is None or not user_note or len(user_note) < 20:
         return 0
     return requested_visibility
+
+
+def copy_public_trip_to_user(conn, source_trip_id, target_user_id):
+    """Python re-implementation of sp_copy_public_trip_to_user (see
+    code/advanced_database_programs.sql and setup.sql, where it's still a
+    real, transactional MySQL stored procedure with row-level locking via
+    FOR UPDATE). SQLite has neither stored procedures nor row-level locks —
+    the same validate/duplicate-check/insert sequence runs here as plain
+    Python inside a single commit/rollback transaction instead. Locking is
+    coarser (SQLite takes a whole-database write lock for the transaction,
+    not a per-row lock), a fine trade-off for a portfolio demo's traffic
+    but worth knowing if this pattern gets reused somewhere concurrency
+    actually matters.
+
+    Returns (new_trip_id, status_code): 0=success, 1=source not found/not
+    public, 2=target user already has this event.
+    """
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            SELECT T.EventId, T.StartDate, T.StartTime, T.HotelCode, T.UserNote
+            FROM TRIP T
+            JOIN EVENT E ON T.EventId = E.EventId
+            WHERE T.TripId = ? AND T.Visibility = 1
+            """,
+            (source_trip_id,),
+        )
+        src = cursor.fetchone()
+        if src is None:
+            conn.rollback()
+            return None, 1
+
+        cursor.execute(
+            "SELECT 1 FROM TRIP WHERE UserId = ? AND EventId = ?",
+            (target_user_id, src["EventId"]),
+        )
+        if cursor.fetchone():
+            conn.rollback()
+            return None, 2
+
+        cursor.execute("SELECT COALESCE(MAX(TripId), 0) + 1 AS next_id FROM TRIP")
+        new_trip_id = cursor.fetchone()["next_id"]
+
+        cursor.execute(
+            """
+            INSERT INTO TRIP (TripId, UserId, EventId, StartDate, StartTime, HotelCode, UserNote, Visibility)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 0)
+            """,
+            (
+                new_trip_id,
+                target_user_id,
+                src["EventId"],
+                src["StartDate"],
+                src["StartTime"],
+                src["HotelCode"],
+                src["UserNote"],
+            ),
+        )
+        conn.commit()
+        return new_trip_id, 0
+    finally:
+        cursor.close()
 
 
 @app.route("/")
@@ -151,9 +234,9 @@ def register_user():
         return jsonify({"message": "Database connection failed."}), 503
 
     try:
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
 
-        cursor.execute("SELECT 1 FROM `USER` WHERE Phone = %s", (phone_num,))
+        cursor.execute("SELECT 1 FROM `USER` WHERE Phone = ?", (phone_num,))
         if cursor.fetchone():
             cursor.close()
             return jsonify({"message": "Phone number already registered."}), 409
@@ -164,7 +247,7 @@ def register_user():
 
         cursor.execute(
             "INSERT INTO `USER` (UserId, Phone, `Password`, FirstName, LastName) "
-            "VALUES (%s, %s, %s, %s, %s)",
+            "VALUES (?, ?, ?, ?, ?)",
             (new_id, phone_num, password, first_name, last_name),
         )
         conn.commit()
@@ -203,14 +286,13 @@ def login_user():
         return jsonify({"message": "Database connection failed."}), 503
 
     try:
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
         sql = """
             SELECT UserId, FirstName, LastName
             FROM `USER`
-            WHERE Phone = %s AND `Password` = %s
+            WHERE Phone = ? AND `Password` = ?
         """
         cursor.execute(sql, (phone_num, password))
-        print(">>> Executed SQL:", cursor.statement)
 
         user = cursor.fetchone()
         cursor.close()
@@ -278,7 +360,7 @@ def search_concerts():
         return jsonify({"message": "Database connection failed."}), 503
 
     try:
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
         sql = """
             SELECT 
                 E.EventId,
@@ -289,8 +371,8 @@ def search_concerts():
                 E.URL
             FROM EVENT E
             JOIN VENUE V ON E.VenueId = V.VenueId
-            WHERE V.City LIKE %s
-              AND E.EventDate = %s
+            WHERE V.City LIKE ?
+              AND E.EventDate = ?
         """
         cursor.execute(sql, (f"%{location}%", search_date))
         rows = cursor.fetchall()
@@ -337,11 +419,11 @@ def add_itinerary_item():
         return jsonify({"message": "Database connection failed."}), 503
 
     try:
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
 
 
         cursor.execute(
-            "SELECT EventDate, EventTime FROM EVENT WHERE EventId = %s",
+            "SELECT EventDate, EventTime FROM EVENT WHERE EventId = ?",
             (event_id,),
         )
         event = cursor.fetchone()
@@ -351,7 +433,7 @@ def add_itinerary_item():
             return jsonify({"message": f"EventId {event_id} not found."}), 404
 
         cursor.execute(
-            "SELECT TripId FROM TRIP WHERE UserId = %s AND EventId = %s",
+            "SELECT TripId FROM TRIP WHERE UserId = ? AND EventId = ?",
             (user_id, event_id),
         )
         existing = cursor.fetchone()
@@ -375,7 +457,7 @@ def add_itinerary_item():
                 TripId, UserId, EventId, StartDate, StartTime,
                 HotelCode, UserNote, Visibility
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
                 trip_id,
@@ -412,7 +494,7 @@ def get_user_itineraries(user_id):
         return jsonify({"message": "Database connection failed."}), 503
 
     try:
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
         sql = """
             SELECT 
                 T.TripId,
@@ -426,7 +508,7 @@ def get_user_itineraries(user_id):
             JOIN EVENT E ON T.EventId = E.EventId
             JOIN VENUE V ON E.VenueId = V.VenueId
             LEFT JOIN HOTEL H ON T.HotelCode = H.HotelCode
-            WHERE T.UserId = %s
+            WHERE T.UserId = ?
         """
         cursor.execute(sql, (user_id,))
         rows = cursor.fetchall()
@@ -448,31 +530,34 @@ def get_user_trip_stats(user_id):
         return jsonify({"message": "Database connection failed."}), 503
 
     try:
-
+        # SQLite has no stored procedures — this runs the exact same query
+        # sp_get_user_trip_stats (code/advanced_database_programs.sql, and
+        # still a real MySQL routine in setup.sql) executes, just called
+        # directly instead of via CALL.
         cursor = conn.cursor()
-        cursor.callproc("sp_get_user_trip_stats", [user_id])
-
-        total_trips = 0
-        public_trips = 0
-        distinct_cities = 0
-        first_trip_date = None
-        last_trip_date = None
-
-        for result in cursor.stored_results():
-            row = result.fetchone()
-            if row:
-                # from the stored procedure
-                # SELECT
-                #   COUNT(*) AS total_trips,
-                #   SUM(CASE WHEN T.Visibility = 1 THEN 1 ELSE 0 END) AS public_trips,
-                #   COUNT(DISTINCT V.City) AS distinct_cities,
-                #   MIN(T.StartDate) AS first_trip_date,
-                #   MAX(T.StartDate) AS last_trip_date
-                total_trips, public_trips, distinct_cities, first_trip_date, last_trip_date = row
-            break
-
+        cursor.execute(
+            """
+            SELECT
+                COUNT(*) AS total_trips,
+                SUM(CASE WHEN T.Visibility = 1 THEN 1 ELSE 0 END) AS public_trips,
+                COUNT(DISTINCT V.City) AS distinct_cities,
+                MIN(T.StartDate) AS first_trip_date,
+                MAX(T.StartDate) AS last_trip_date
+            FROM TRIP T
+            JOIN EVENT E ON T.EventId = E.EventId
+            JOIN VENUE V ON E.VenueId = V.VenueId
+            WHERE T.UserId = ?
+            """,
+            (user_id,),
+        )
+        row = cursor.fetchone()
         cursor.close()
 
+        total_trips = row["total_trips"] if row else 0
+        public_trips = row["public_trips"] if row else 0
+        distinct_cities = row["distinct_cities"] if row else 0
+        first_trip_date = row["first_trip_date"] if row else None
+        last_trip_date = row["last_trip_date"] if row else None
 
         if total_trips is None:
             total_trips = 0
@@ -506,7 +591,7 @@ def delete_trip(trip_id):
 
     try:
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM TRIP WHERE TripId = %s", (trip_id,))
+        cursor.execute("DELETE FROM TRIP WHERE TripId = ?", (trip_id,))
         conn.commit()
 
         if cursor.rowcount == 0:
@@ -541,17 +626,17 @@ def update_trip_visibility(trip_id):
         cursor = conn.cursor()
 
 
-        cursor.execute("SELECT HotelCode, UserNote FROM TRIP WHERE TripId = %s", (trip_id,))
+        cursor.execute("SELECT HotelCode, UserNote FROM TRIP WHERE TripId = ?", (trip_id,))
         row = cursor.fetchone()
         if not row:
             cursor.close()
             return jsonify({"message": f"Trip {trip_id} not found."}), 404
-        hotel_code, user_note = row
+        hotel_code, user_note = row["HotelCode"], row["UserNote"]
         requested_visibility = visibility
         enforced_visibility = compute_enforced_visibility(hotel_code, user_note, visibility)
 
         cursor.execute(
-            "UPDATE TRIP SET Visibility = %s WHERE TripId = %s",
+            "UPDATE TRIP SET Visibility = ? WHERE TripId = ?",
             (enforced_visibility, trip_id)
         )
         conn.commit()
@@ -559,11 +644,11 @@ def update_trip_visibility(trip_id):
 
 
         cursor = conn.cursor()
-        cursor.execute("SELECT Visibility FROM TRIP WHERE TripId = %s", (trip_id,))
+        cursor.execute("SELECT Visibility FROM TRIP WHERE TripId = ?", (trip_id,))
         row = cursor.fetchone()
         cursor.close()
 
-        actual_visibility = int(row[0]) if row and row[0] is not None else 0
+        actual_visibility = int(row["Visibility"]) if row and row["Visibility"] is not None else 0
 
         msg = "Visibility updated."
 
@@ -595,16 +680,16 @@ def update_trip(trip_id):
 
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT HotelCode, Visibility FROM TRIP WHERE TripId = %s", (trip_id,))
+        cursor.execute("SELECT HotelCode, Visibility FROM TRIP WHERE TripId = ?", (trip_id,))
         row = cursor.fetchone()
         if row is None:
             cursor.close()
             return jsonify({"message": f"Trip {trip_id} not found."}), 404
-        hotel_code, current_visibility = row
+        hotel_code, current_visibility = row["HotelCode"], row["Visibility"]
         new_visibility = compute_enforced_visibility(hotel_code, user_note, current_visibility)
 
         cursor.execute(
-            "UPDATE TRIP SET UserNote = %s, Visibility = %s WHERE TripId = %s",
+            "UPDATE TRIP SET UserNote = ?, Visibility = ? WHERE TripId = ?",
             (user_note, new_visibility, trip_id),
         )
         conn.commit()
@@ -625,7 +710,7 @@ def get_hotels_for_event(event_id):
         return jsonify({"message": "Database connection failed."}), 503
 
     try:
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
 
 
         cursor.execute(
@@ -638,7 +723,7 @@ def get_hotels_for_event(event_id):
                 V.City
             FROM EVENT E
             JOIN VENUE V ON E.VenueId = V.VenueId
-            WHERE E.EventId = %s
+            WHERE E.EventId = ?
         """,
             (event_id,),
         )
@@ -664,7 +749,7 @@ def get_hotels_for_event(event_id):
                 StarRating,
                 URL
             FROM HOTEL
-            WHERE City = %s
+            WHERE City = ?
         """,
             (target_city,),
         )
@@ -712,7 +797,7 @@ def get_hotel_by_code(hotel_code):
         return jsonify({"message": "Database connection failed."}), 503
 
     try:
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
         cursor.execute(
             """
             SELECT 
@@ -723,7 +808,7 @@ def get_hotel_by_code(hotel_code):
                 StarRating,
                 URL
             FROM HOTEL
-            WHERE HotelCode = %s
+            WHERE HotelCode = ?
         """,
             (hotel_code,),
         )
@@ -748,7 +833,7 @@ def get_event_detail(event_id):
         return jsonify({"message": "Database connection failed."}), 503
 
     try:
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
         cursor.execute(
             """
             SELECT 
@@ -762,7 +847,7 @@ def get_event_detail(event_id):
                 V.State
             FROM EVENT E
             JOIN VENUE V ON E.VenueId = V.VenueId
-            WHERE E.EventId = %s
+            WHERE E.EventId = ?
         """,
             (event_id,),
         )
@@ -816,7 +901,7 @@ def get_community_trips():
         return jsonify({"message": "Database connection failed."}), 503
 
     try:
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
 
         base_sql = """
             SELECT
@@ -840,10 +925,10 @@ def get_community_trips():
 
         params = []
         if city:
-            base_sql += " AND V.City LIKE %s"
+            base_sql += " AND V.City LIKE ?"
             params.append(f"%{city}%")
         if artist:
-            base_sql += " AND E.EventName LIKE %s"
+            base_sql += " AND E.EventName LIKE ?"
             params.append(f"%{artist}%")
 
         base_sql += " ORDER BY E.EventDate DESC"
@@ -874,14 +959,7 @@ def copy_trip_to_user(trip_id):
         return jsonify({"message": "Database connection failed."}), 503
 
     try:
-        cursor = conn.cursor()
-        args = [trip_id, target_user_id, 0, 0]
-        result_args = cursor.callproc("sp_copy_public_trip_to_user", args)
-        conn.commit()
-        cursor.close()
-
-        new_trip_id = result_args[2]
-        status_code = result_args[3]
+        new_trip_id, status_code = copy_public_trip_to_user(conn, trip_id, target_user_id)
 
         if status_code == 1:
             return (

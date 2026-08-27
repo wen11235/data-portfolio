@@ -6,14 +6,7 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
     plan: free
-    envVars:
-      - key: DB_HOST
-        sync: false
-      - key: DB_PORT
-        sync: false
-      - key: DB_DATABASE
-        sync: false
-      - key: DB_USER
-        sync: false
-      - key: DB_PASSWORD
-        sync: false
+    # No env vars needed — the database is a bundled SQLite file
+    # (concertnow.db), created automatically on first run. See
+    # README.md's "Live deployment" section for why (MySQL free-tier
+    # hosting turned out to be unreliable).

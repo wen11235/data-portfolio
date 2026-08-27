@@ -5,6 +5,10 @@ __pycache__/
 .venv/
 venv/
 
+# ConcertNOW's SQLite deploy DB is generated automatically by app.py on
+# first run (see init_db()) — never commit the file itself.
+projects/09-concert-trip-planner/deploy/concertnow.db
+
 # Raw data dumps over ~20MB are noted with a source link in each project's data/README.md
 # instead of being committed, to keep the repo lightweight.
 projects/01-retail-customer-analytics/data/online_retail.csv
