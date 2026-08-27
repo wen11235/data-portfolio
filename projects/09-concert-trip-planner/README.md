@@ -2,11 +2,9 @@
 
 **TL;DR:** A full-stack Flask + MySQL app that combines concert search, hotel matching, and shareable itineraries into one workflow — built as a 3-person team project for a graduate database systems course (CS411, UIUC). My role: backend logic, API development, and integrating triggers and transaction-based stored procedures into the Flask app.
 
-[📄 Full report](report.html) · [💻 Code](code/) · [📑 Project Report PDF](Project_Report.pdf) · [📑 Indexing Analysis PDF](Stage3_Indexing_Analysis.pdf)
+[📄 Full report](report.html) · [🌐 Live Demo](https://data-portfolio-egrt.onrender.com) · [💻 Code](code/) · [📑 Project Report PDF](Project_Report.pdf) · [📑 Indexing Analysis PDF](Stage3_Indexing_Analysis.pdf)
 
-<!-- TODO once deployed: · [🌐 Live Demo](https://your-app.onrender.com) -->
-
-**Live demo**: not yet deployed — see [DEPLOY.md](DEPLOY.md) for the ready-to-go deployment guide (freesqldatabase.com + Render.com, both free, ~15 min).
+**Live demo**: [data-portfolio-egrt.onrender.com](https://data-portfolio-egrt.onrender.com) — try it with the seeded demo account (`5551234567` / `demo1234`) or register your own. Free tier spins down after 15 min idle, so the first load can take ~30-60s. Database is bundled SQLite and resets on every restart — see [DEPLOY.md](DEPLOY.md) for why.
 
 ## Team & my role
 

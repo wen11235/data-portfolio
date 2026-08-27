@@ -78,7 +78,7 @@ should return `{"message":"Login successful.", ...}` — not a 503.
   request after that takes ~30-60 seconds to cold-start. If a recruiter
   clicks the link and it looks slow/broken at first, that's why.
 
-## Once it's live
+## Status
 
-Send me the confirmed-working URL and I'll wire it into the homepage card,
-README, and report.html as a "Live Demo" link.
+✅ Live and verified: **https://data-portfolio-egrt.onrender.com** — wired
+into the homepage card, README.md, and report.html as "Live Demo" links.
