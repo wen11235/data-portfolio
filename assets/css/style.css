@@ -267,6 +267,14 @@ section > h2 {
   box-shadow: 0 0 24px -10px color-mix(in srgb, var(--card-accent) 55%, transparent), 0 18px 40px -28px color-mix(in srgb, var(--card-accent) 70%, transparent);
   transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
 }
+/* .reveal (below) redeclares `transition` for its entrance animation, which
+   would otherwise silently replace this rule's border/shadow transitions —
+   and the slower 0.7s duration would also make the mouse-tracked tilt effect
+   feel laggy. Higher specificity (3 classes) restores the fast, correct
+   hover transition once the entrance animation has finished. */
+.card.reveal.is-visible {
+  transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease, opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
 .card::after {
   content: "";
   position: absolute;
@@ -574,3 +582,54 @@ code {
   background: color-mix(in srgb, var(--accent) 45%, transparent);
   color: var(--text);
 }
+
+/* ---- Image lightbox ---- */
+.report figure img { cursor: zoom-in; }
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 40px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.lightbox-overlay.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.lightbox-overlay img {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 12px;
+  box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.6);
+  cursor: zoom-out;
+}
+
+/* ---- Copy-code button ---- */
+.report pre, pre { position: relative; }
+.copy-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 5px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-dim);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+pre:hover .copy-btn { opacity: 1; }
+.copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+.copy-btn.copied { color: var(--good); border-color: var(--good); }
