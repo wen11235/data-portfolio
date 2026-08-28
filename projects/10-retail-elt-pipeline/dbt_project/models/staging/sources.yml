@@ -1,0 +1,20 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    tables:
+      - name: orders_raw
+        description: >
+          Raw landing table, loaded by pipeline/extract_load.py directly
+          from the daily source CSVs — untouched, including cancellations,
+          missing CustomerIDs, and negative quantities. Cleaning happens in
+          stg_orders, not here; see pipeline/quality_checks.py for the
+          structural checks that DO run against this raw layer.
+        columns:
+          - name: InvoiceNo
+            tests: [not_null]
+          - name: StockCode
+            tests: [not_null]
+          - name: InvoiceDate
+            tests: [not_null]

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script>(function(){try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark"){document.documentElement.setAttribute("data-theme",t);}}catch(e){}})();</script>
+<title>Retail ELT Pipeline — Report</title>
+<link rel="icon" type="image/svg+xml" href="../../assets/img/favicon.svg">
+<link rel="stylesheet" href="../../assets/css/style.css">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+
+<header class="hero" style="--accent: var(--hue-green);">
+  <div class="wrap">
+    <p class="eyebrow">Project 10 · Data Engineer · ELT Pipeline</p>
+    <h1>Retail ELT Pipeline</h1>
+    <p class="lede">
+      Every other project in this portfolio starts from clean data. This one
+      builds the thing that makes data clean in the first place — an
+      automated, idempotent, tested pipeline, not another analysis.
+    </p>
+    <div class="links">
+      <a href="../../index.html">&larr; All projects</a>
+      <a href="https://github.com/wen11235/data-portfolio/actions/workflows/retail-elt-pipeline.yml">GitHub Actions runs</a>
+      <a href="https://github.com/wen11235/data-portfolio/tree/main/projects/10-retail-elt-pipeline/pipeline">Pipeline code</a>
+      <a href="https://github.com/wen11235/data-portfolio/tree/main/projects/10-retail-elt-pipeline/dbt_project">dbt project</a>
+      <a href="README.md">Project README</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap report">
+
+  <section>
+    <h2>The numbers</h2>
+    <div class="stat-row">
+      <div class="stat"><div class="value">30</div><div class="label">Daily batches, fully idempotent</div></div>
+      <div class="stat"><div class="value">58,345</div><div class="label">Raw rows loaded</div></div>
+      <div class="stat"><div class="value badge-good">28/28</div><div class="label">dbt tests passing</div></div>
+      <div class="stat"><div class="value">0</div><div class="label">External service dependencies</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Why this exists</h2>
+    <p>
+      A Data Analyst/Scientist workflow assumes the data is already clean
+      and sitting in a table somewhere. A Data Engineer's job is making
+      that true in the first place — reliably, on a schedule, without a
+      human re-running anything by hand. This project is deliberately
+      scoped to just that: extract/load, data quality gating, warehouse
+      modeling, and orchestration, kept separate from any ML/analysis
+      work. Same underlying dataset as
+      <a href="../01-retail-customer-analytics/">Project 1</a>, rebuilt
+      end to end as an engineering exercise instead of an analytical one.
+    </p>
+  </section>
+
+  <section>
+    <h2>Architecture</h2>
+    <figure>
+      <img src="assets/architecture.png" alt="Pipeline architecture diagram: raw daily CSVs flow through extract_load.py into a DuckDB raw table, through a data quality gate, into dbt staging and marts models, all orchestrated by GitHub Actions on a schedule">
+      <figcaption>Extract/load → quality gate → dbt transform, orchestrated by GitHub Actions on a daily cron plus on-demand runs.</figcaption>
+    </figure>
+    <ol>
+      <li><strong>Source</strong> — <code>data/raw_daily/*.csv</code>, 30 daily files simulating one day's new-orders export each.</li>
+      <li><strong>Extract + load</strong> — loads each file into <code>raw.orders_raw</code> in a DuckDB warehouse, tracking progress in a <code>raw._pipeline_state</code> control table so re-running never duplicates data.</li>
+      <li><strong>Data quality gate</strong> — blocking checks (schema, null identifiers, empty batches, misfiled dates) vs. warning checks (expected messiness like missing CustomerIDs) — deliberately not one undifferentiated list.</li>
+      <li><strong>Transform</strong> — dbt staging model applies the actual cleaning rules; a marts layer builds a star schema plus an RFM feature mart, covered by 22 dbt tests.</li>
+      <li><strong>Orchestration</strong> — GitHub Actions, scheduled + on-demand, fails the job on any blocking failure.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>A deliberate non-decision: no live external data source</h2>
+    <div class="callout">
+      The obvious "more realistic" version of this pipeline pulls from a
+      live API. It doesn't, on purpose. Two free MySQL hosts used
+      elsewhere in this portfolio
+      (<a href="../09-concert-trip-planner/">ConcertNOW</a>) both failed
+      within about a week — one domain got hijacked, the other's account
+      expired outright. A scheduled pipeline with a real external
+      dependency inherits that same risk on a recurring basis, for a
+      portfolio piece where the actual point is the pipeline logic, not
+      the data source. The daily CSVs are committed fixtures instead —
+      small (~5MB), version-controlled — and the pipeline code downstream
+      doesn't know or care that they're static; swapping in a real API
+      poll would be a contained change to one script, not a redesign.
+    </div>
+  </section>
+
+  <section>
+    <h2>Data quality: blocking vs. warning, on purpose</h2>
+    <p>
+      Every check could have been written as a hard failure. That would
+      have been wrong — a chunk of this dataset's real messiness (guest
+      checkouts with no CustomerID, cancellations with negative quantity,
+      a handful of genuinely repeated line items) is expected, not
+      corruption, and a pipeline that halts on expected data isn't
+      trustworthy either. Checked directly before writing the checks, not
+      assumed:
+    </p>
+    <table>
+      <thead><tr><th>Check</th><th>Type</th><th>Result on real data</th></tr></thead>
+      <tbody>
+        <tr><td>Schema / expected columns &amp; types</td><td>Blocking</td><td class="badge-good">PASS</td></tr>
+        <tr><td>Null InvoiceNo / StockCode / InvoiceDate</td><td>Blocking</td><td class="badge-good">PASS (0 nulls)</td></tr>
+        <tr><td>Empty batch</td><td>Blocking</td><td class="badge-good">PASS</td></tr>
+        <tr><td>Row lands in correct day's batch</td><td>Blocking</td><td class="badge-good">PASS</td></tr>
+        <tr><td>Missing CustomerID rate</td><td>Warning</td><td>37.5% — guest checkouts, filtered downstream</td></tr>
+        <tr><td>Negative Quantity rate</td><td>Warning</td><td>1.9% — cancellations/returns, filtered downstream</td></tr>
+        <tr><td>Repeated (InvoiceNo, StockCode) pairs</td><td>Warning</td><td>997 pairs — real, not deduplicated</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Verified, not assumed</h2>
+    <ul>
+      <li><strong>Idempotency</strong> — ran the pipeline twice: second run loaded 0 new batches, skipped all 30, row count unchanged at 58,345.</li>
+      <li><strong>The gate actually blocks bad data</strong> — injected a row with a null <code>InvoiceNo</code> into a test batch; the gate failed with exit code 1 and named the exact problem, before being removed again.</li>
+      <li><strong><code>--reload</code> path</strong> — force-reloaded a single batch; row and batch counts unchanged afterward.</li>
+      <li><strong>dbt build</strong> — 5 models + 1 view, 22 tests, <code>PASS=28 WARN=0 ERROR=0</code>.</li>
+      <li><strong>CI</strong> — the GitHub Actions workflow runs the identical commands against a fresh checkout; real run history is public on the <a href="https://github.com/wen11235/data-portfolio/actions/workflows/retail-elt-pipeline.yml">Actions tab</a>, not a screenshot.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Warehouse model</h2>
+    <p>
+      <code>stg_orders</code> (view) applies the cleaning rules once;
+      <code>dim_customers</code>, <code>dim_products</code>, and
+      <code>dim_date</code> form the dimension layer;
+      <code>fct_orders</code> is the line-item fact table, foreign-keyed to
+      all three dims and tested for referential integrity; <code>customer_rfm</code>
+      computes the same Recency/Frequency/Monetary definition as
+      <a href="../01-retail-customer-analytics/">Project 1</a>'s notebook,
+      in SQL, in-warehouse — deliberately stops short of Project 1's
+      KMeans segmentation, since that's a modeling step that belongs with
+      sklearn in a notebook, not a SQL transform layer.
+    </p>
+  </section>
+
+  <section>
+    <h2>Skills demonstrated</h2>
+    <div class="tags">
+      <span class="tag">ELT Pipeline Design</span>
+      <span class="tag">dbt</span>
+      <span class="tag">Idempotency</span>
+      <span class="tag">Data Quality</span>
+      <span class="tag">Star Schema</span>
+      <span class="tag">DuckDB</span>
+      <span class="tag">CI/CD Orchestration</span>
+      <span class="tag">GitHub Actions</span>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    Source dataset: <a href="https://archive.ics.uci.edu/dataset/352/online+retail">UCI "Online Retail"</a> (same data as Project 1).
+    Full code in <a href="https://github.com/wen11235/data-portfolio/tree/main/projects/10-retail-elt-pipeline/pipeline">pipeline/</a> and <a href="https://github.com/wen11235/data-portfolio/tree/main/projects/10-retail-elt-pipeline/dbt_project">dbt_project/</a>.
+  </div>
+</footer>
+
+<script src="../../assets/js/site.js"></script>
+</body>
+</html>

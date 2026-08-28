@@ -1,0 +1,66 @@
+version: 2
+
+models:
+  - name: dim_customers
+    description: One row per customer.
+    columns:
+      - name: CustomerID
+        tests: [not_null, unique]
+
+  - name: dim_products
+    description: One row per product (StockCode).
+    columns:
+      - name: StockCode
+        tests: [not_null, unique]
+
+  - name: dim_date
+    description: Date spine covering the loaded order data's range.
+    columns:
+      - name: OrderDate
+        tests: [not_null, unique]
+
+  - name: fct_orders
+    description: One row per (InvoiceNo, StockCode) order line item.
+    columns:
+      - name: CustomerID
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_customers')
+                field: CustomerID
+      - name: StockCode
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_products')
+                field: StockCode
+      - name: OrderDate
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: OrderDate
+      - name: TotalPrice
+        tests:
+          - not_null
+
+  - name: customer_rfm
+    description: Recency/Frequency/Monetary per customer.
+    columns:
+      - name: CustomerID
+        tests:
+          - not_null
+          - unique
+          - relationships:
+              arguments:
+                to: ref('dim_customers')
+                field: CustomerID
+      - name: Recency
+        tests: [not_null]
+      - name: Frequency
+        tests: [not_null]
+      - name: Monetary
+        tests: [not_null]

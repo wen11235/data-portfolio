@@ -1,0 +1,72 @@
+name: Retail ELT Pipeline (Project 10)
+
+# Runs the pipeline end to end: extract+load the daily raw CSVs (idempotent
+# — see pipeline/extract_load.py) into a DuckDB warehouse, run the
+# blocking/warning data quality gate, then dbt build the staging + marts
+# layers with their tests. No external service involved (the "source
+# system" is the committed data/raw_daily/*.csv fixtures) — after two free
+# database hosts expired/broke elsewhere in this portfolio
+# (see projects/09-concert-trip-planner/DEPLOY.md), this pipeline was
+# deliberately built to have nothing external that can go down.
+
+on:
+  schedule:
+    - cron: '0 13 * * *'  # once a day, 13:00 UTC — arbitrary; the point is a schedule exists
+  workflow_dispatch: {}    # manual "Run workflow" button, for on-demand demo runs
+  push:
+    branches: [main]
+    paths:
+      - 'projects/10-retail-elt-pipeline/**'
+      - '.github/workflows/retail-elt-pipeline.yml'
+
+defaults:
+  run:
+    working-directory: projects/10-retail-elt-pipeline
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Extract + load (idempotent)
+        run: |
+          set -o pipefail
+          echo '## Extract + load' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          python3 pipeline/extract_load.py | tee -a "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Data quality gate
+        run: |
+          set -o pipefail
+          echo '## Data quality gate' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          python3 pipeline/quality_checks.py | tee -a "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: dbt build (models + tests)
+        working-directory: projects/10-retail-elt-pipeline/dbt_project
+        env:
+          DBT_PROFILES_DIR: .
+        run: |
+          set -o pipefail
+          echo '## dbt build' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          dbt build | tee -a "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload warehouse as build artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: warehouse-duckdb
+          path: projects/10-retail-elt-pipeline/warehouse.duckdb
+          retention-days: 14

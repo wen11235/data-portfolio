@@ -2,11 +2,11 @@
 
 A collection of end-to-end data analytics / data science projects, built to showcase skills for Data Analyst / Data Scientist roles. Each project uses a real public dataset and includes a Jupyter notebook (full analysis) plus a standalone `report.html` (shareable write-up with charts and findings).
 
-Live site: `https://wen11235.github.io/<repo-name>/` (update once deployed).
+Live site: [wen11235.github.io/data-portfolio](https://wen11235.github.io/data-portfolio/).
 
 ## Projects
 
-Projects 1–4 are entirely the author's own work (coursework/team projects); projects 5–9 are built on public datasets as part of this portfolio exercise.
+Projects 1–4 are entirely the author's own work (coursework/team projects); projects 5–10 are built on public datasets as part of this portfolio exercise.
 
 | # | Project | Focus | Key Skills |
 |---|---------|-------|------------|
@@ -19,6 +19,7 @@ Projects 1–4 are entirely the author's own work (coursework/team projects); pr
 | 7 | [Data Job Market Skill Trends](projects/03-data-job-market-trends/) | Data Analyst / NLP | Text mining, skill-demand analysis, market research |
 | 8 | [Retail Sales Interactive Dashboard](projects/05-retail-dashboard/) | Data Analyst / BI | Plotly, interactive dashboards, client-side filtering |
 | 9 | [A/B Test Analysis: Cookie Cats](projects/06-ab-testing/) | Data Scientist / Experimentation | Hypothesis testing, bootstrap resampling, statistical vs. practical significance |
+| 10 | [Retail ELT Pipeline](projects/10-retail-elt-pipeline/) | Data Engineer | dbt, idempotent ELT, data quality gating, star schema, GitHub Actions orchestration |
 
 ## Running locally
 
